@@ -29,14 +29,17 @@ public:
    * \brief default constructor
    * \param[in] euler_solver - a Quasi1DEuler solver (defines product)
    */
-  AeroStructMDA(int num_nodes, Quasi1DEuler * euler_solver, LECSM * fea_solver):
+  AeroStructMDA(int num_nodes, int order):
       u_(6*num_nodes,0.0), 
-      v_(6*num_nodes,0.0) {
-    cfd_ = euler_solver;
-    csm_ = fea_solver; 
-  }
+      v_(6*num_nodes,0.0),
+      cfd_(num_nodes, order),
+      csm_(num_nodes)
+  { num_nodes_ = num_nodes;
+    order_ = order; }
 
   ~AeroStructMDA() {} ///< class destructor
+
+  void InitializeTestProb();
 
   /*!
    * \brief returns a pointer to the CFD discipline solver
@@ -70,11 +73,15 @@ public:
    */
   void NewtonKrylov(const int & max_iter, const double & tol);
 
+  void GetTecplot(const double & rho_ref, const double & a_ref)
+  { cfd_->WriteTecplot(rho_ref, a_ref); }
+
  private:
   Quasi1DEuler * cfd_; ///< used to access quasi_1d_euler matvec routines
   LECSM * csm_; ///< used to access linear_elastic_csm routines
   InnerProdVector u_;
   InnerProdVector v_;
+  int num_nodes_, order_;
 
   friend class AeroStructProduct;
   friend class AeroStructPrecond;
@@ -90,20 +97,14 @@ class AeroStructProduct:
     public kona::MatrixVectorProduct<InnerProdVector> {
 public:
 
-  AeroStructProduct(AeroStructMDA * mda) {
-    mda_ = mda;
-    cfd_ = mda_->get_cfd();
-    csm_ = mda_->get_csm();
-  }
+  AeroStructProduct(AeroStructMDA * mda) { mda_ = mda; }
 
-  ~AeroStructProduct();
+  ~AeroStructProduct() {}
   
   void operator()(const InnerProdVector & u, InnerProdVector & v);
   
 private:
   AeroStructMDA * mda_;
-  Quasi1DEuler * cfd_;
-  LECSM * csm_;
 }; 
 
 // ======================================================================
@@ -116,18 +117,12 @@ class AeroStructPrecond:
     public kona::MatrixVectorProduct<InnerProdVector> {
 public:
 
-  AeroStructPrecond(AeroStructMDA * mda) {
-    mda_ = mda;
-    cfd_ = mda_->get_cfd();
-    csm_ = mda_->get_csm();
-  }
+  AeroStructPrecond(AeroStructMDA * mda) { mda_ = mda; }
 
-  ~AeroStructPrecond();
+  ~AeroStructPrecond() {}
 
   void operator()(InnerProdVector & u, InnerProdVector & v);
 
 private:
   AeroStructMDA * mda_;
-  Quasi1DEuler * cfd_;
-  LECSM * csm_;
 }; 

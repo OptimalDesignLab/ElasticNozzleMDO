@@ -27,6 +27,89 @@ using std::ofstream;
 
 // ======================================================================
 
+void AeroStructMDA::InitializeTestProb()
+{
+  // start defining the nozzle
+  double length = 10.0;
+  InnerProdVector x_coord(num_nodes_, 0.0);
+  InnerProdVector y_coord(num_nodes_, 0.0);
+  InnerProdVector area(num_nodes, 0.0);
+  for (int i = 0; i < nodes; i++) {
+    // evenly spaced nodes along the x
+    x_coord(i) = i*length/(num_nodes_ - 1);
+    // parabolic nozzle wall for y coords
+    y_coord(i) = 0.01*(length-x_coord(i))*x_coord(i);
+    // area based on a 1-by-1 square intake cross-section
+    area(i) = 2*(1-y_coord(i)); 
+  }
+
+  // set the CFD "mesh"
+  cfd_.set_x_coord(x_coord);
+  cfd_.set_area(area);
+
+  // define and set the left-end boundary conditions
+  double rho_ref = 1.14091202011454;
+  double p = 9.753431315656936E4;
+  double rho = rho_ref;
+  double rho_u = rho*65.45103620864865;
+  double a_ref = sqrt(kGamma*p/rho);
+  double e = p/(kGamma-1.0) + 0.5*rho_u*rho_u/rho;
+  // nondimensionalize
+  rho_u /= (a_ref*rho_ref);
+  e /= (rho_ref*a_ref*a_ref);
+  rho = 1.0; // i.e. non-dimensionalize density by itself
+  solver.set_bc_left(rho, rho_u, e);
+
+  // set the initial flow to the left boundary
+  solver.InitialCondition(rho, rho_u, e);
+
+  // define and set the right-end boundary conditions
+  p = 9.277211161772544E4;
+  rho = 1.10083845647356;
+  rho_u = rho * 113.0560581652928;
+  e = p/(kGamma-1.0) + 0.5*rho_u*rho_u/rho;
+  // nondimensionalize
+  rho /= rho_ref;
+  rho_u /= (rho_ref*a_ref);
+  e /= (rho_ref*a_ref*a_ref);
+  solver.set_bc_right(rho, rho_u, e);
+
+  // define any discretization and solver paramters
+  solver.set_diss_coeff(0.04);
+
+  // generate CSM mesh
+  csm_.GenerateMesh(x_coord, y_coord);
+
+  // determine the nodal structural boundary conditions
+  InnerProdVector BCtype(3*num_nodes_, 0.0);
+  InnerProdVector BCval(3*num_nodes_, 0.0);
+  for (int i=0; i<num_nodes_; i++) {
+    if ((i == 0) || (i == num_nodes_ - 1)) {
+      BCtype(3*i) = 0;
+      BCtype(3*i+1) = 0;
+      BCtype(3*i+2) = -1;   
+    }
+    else {
+      BCtype(3*i) = -1;
+      BCtype(3*i+1) = -1;
+      BCtype(3*i+2) = -1;
+    }
+    BCval(3*i) = 0;
+    BCval(3*i+1) = 0;
+    BCval(3*i+2) = 0;
+  }
+  csm_.SetBoundaryConds(BCtype, BCval);
+
+  // set material properties for CSM
+  double E = 100000000;   // Young's modulus
+  double w = 1;           // fixed width of nozzle
+  double t = 0.03;        // fixed beam element thickness
+  double h = 1;           // max height of the nozzle
+  csm_.set_material(E, t, w, h);
+}
+
+// ======================================================================
+
 void AeroStructMDA::CalcResidual()
 {
   // Split system u into CSM and CFD vectors
@@ -88,13 +171,12 @@ void AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
       return precond_calls;
     }
 
-    // re-calculate the CFD preconditioner at each iteration
-    cfd_->BuildAndFactorPreconditioner();
+    
 
     // solve for the Newton update du and add to u
     int m = 10;
     double tol = 1.0e-2;
-    InnerProdVector dq(3*num_nodes_, 0.0);
+    InnerProdVector du(3*num_nodes_, 0.0);
     int krylov_precond_calls;
     try {
       kona::FGMRES(m, tol, b, du, *mat_vec, *precond,
@@ -162,13 +244,22 @@ void AeroStructProduct::operator()(const InnerProdVector & u,
 
 void AeroStructPrecond::operator()(InnerProdVector & u, InnerProdVector & v)
 {
+  // decompose u into its cfd and csm parts, and create some work arrays
+  num_nodes = cfd_->get_num_nodes();  
+  InnerProdVector u_cfd(3*num_nodes, 0.0), v_cfd(3*num_nodes, 0.0),
+      v_csm(3*num_nodes, 0.0);
+  for (int i = 0; i < 3*num_nodes; i++) {
+    u_cfd(i) = u(i);
+    v_csm(i) = u(3*num_nodes+i); // v_csm = u_csm (no preconditioning for CSM)
+  }
   // inherit the preconditioner calculated at every iteration for the CFD
-  kona::Preconditioner<InnerProdVector>*
-      precond_cfd = new cfd_->ApproxJacobian(cfd_);
-
-  // build identity matrix static preconditioner for the structural solver
-  kona::Preconditioner<InnerProdVector>*
-      precond_csm(3*num_nodes)
+  cfd_->BuildAndFactorPreconditioner();
+  cfd_->Precondition(u_cfd, v_cfd);
 
   // merge the preconditioners and pass it up
+  for (int i = 0; i < 3*num_nodes; i++) {
+    v(i) = v_cfd(i);
+    v(3*num_nodes+i) = v_csm(i);
+  }
+
 }
