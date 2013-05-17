@@ -1,0 +1,6 @@
+[submodule "linear_elastic_csm"]
+	path = linear_elastic_csm
+	url = git@bitbucket.org:denera/linear_elastic_csm.git
+[submodule "quasi_1d_euler"]
+	path = quasi_1d_euler
+	url = git@bitbucket.org:jehicken/quasi_1d_euler.git

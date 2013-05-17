@@ -1,0 +1,38 @@
+Authors: Prof. Jason Hicken, Alp Dener
+Summer 2013, C/C++
+Rensselaer Polytechnic Institute
+_________________________________________________________________________________
+AERO STRUCTURAL MULTIDISCIPLINARY ANALYSIS PROGRAM
+
+Ongoing work on coupling Alp Dener's computational structural mechanics program 
+(2D beam) with Prof. Jason Hicken's Quasi 1D Euler flow solver.
+
+LECSM: https://bitbucket.org/denera/linear_elastic_csm
+Quasi 1D Euler: https://bitbucket.org/jehicken/quasi_1d_euler
+_________________________________________________________________________________
+DEPENDENCIES:
++ Boost
++ Kona (https://bitbucket.org/jehicken/kona)
+_________________________________________________________________________________
+DESIGN NOTES:
+
++ Bspline::EvalAtPoints will give a vector of Y coordinates
+that correspond to a vector of X coordinates on the Bspline.
+Use this to create the mesh.
+
++ Use Bspline::FitCurve to generate analytical Bspline from
+a set of X and Y coordinates. The optimizer will control only
+the Bspline, not the mesh coordinates.
+_________________________________________________________________________________
+MAJOR ISSUES:
+
++ Assemble the system preconditioner.
+
++ Figure out how to find the system residual L2 norm.
+
++ Clear up the operator(this) calls. How do they work?
+
++ Review CSM gradients.
+
++ Review the calculation of system residual.
+
