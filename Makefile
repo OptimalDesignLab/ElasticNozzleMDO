@@ -10,12 +10,13 @@ SHELL = /bin/sh
 CXX= gcc 
 
 # c preprocessor options
-CPPFLAGS= -cpp -DDEBUG
+CPPFLAGS= -cpp -DDEBUG -DBOOST_UBLAS_ENABLE_PROXY_SHORTCUTS
+#CPPFLAGS= -cpp -DNDEBUG -DBOOST_UBLAS_ENABLE_PROXY_SHORTCUTS -DBOOST_UBLAS_TYPE_CHECK=0
 
 # compiler options that may vary (user can change)
 CXXFLAGS= -g 
-BOOST_ROOT= /usr/include/boost
-KONA_ROOT= /home/denera/Documents/Research/kona
+BOOST_ROOT= /usr/include/boost_1_47_0
+KONA_ROOT= $(KONA_HOME)
 
 # linker options
 LDFLAGS= -lstdc++ -llapack -L. -lboost_program_options -lm -L$(KONA_ROOT) -lkona
