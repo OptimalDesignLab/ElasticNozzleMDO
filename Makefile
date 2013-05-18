@@ -15,7 +15,7 @@ CPPFLAGS= -cpp -DDEBUG -DBOOST_UBLAS_ENABLE_PROXY_SHORTCUTS
 
 # compiler options that may vary (user can change)
 CXXFLAGS= -g 
-BOOST_ROOT= /usr/include/boost_1_47_0
+BOOST_ROOT= $(BOOST_HOME)
 KONA_ROOT= $(KONA_HOME)
 
 # linker options
@@ -37,9 +37,9 @@ CFD_SRC= $(CFD_DIR)/*.cpp
 CSM_SRC= $(CSM_DIR)/*.cpp
 
 # source and object file names
-HEADERS= $(wildcard $(CFD_HEADERS) $(CSM_HEADERS))
+HEADERS= $(wildcard $(CFD_HEADERS) $(CSM_HEADERS) ./*.hpp)
 HEADERS_ALL= $(HEADERS)
-SOURCES= $(wildcard $(CFD_SRC) $(CSM_SRC))
+SOURCES= $(wildcard $(CFD_SRC) $(CSM_SRC) ./*.cpp)
 SOURCES_ALL= $(SOURCES)
 OBJS= $(SOURCES:.cpp=.o)
 OBJS_ALL= $(SOURCES_ALL:.cpp=.o)
@@ -61,7 +61,7 @@ tags: $(HEADERS) $(SOURCES)
 
 MDA_test.bin: $(OBJS) Makefile
 	@echo "Compiling \""$@"\" from \""$(OBJS)"\""
-	@$(CXX) -o $@ $(OBJS) $(LDFLAGS) 
+	@$(CXX) -o $@ $(OBJS) $(LDFLAGS)
 
 clean:
 	@echo "deleting temporary, object, and binary files"

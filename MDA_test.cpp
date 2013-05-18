@@ -13,16 +13,20 @@ using namespace std;
 
 int main() {
 
-	int nnp = 50;
+	int nnp = 81;
 	int order = 4;
 	AeroStructMDA asmda(nnp, order);
 
+	printf("Initializing problem...\n");
 	asmda.InitializeTestProb();
 
+	printf("Starting solver...\n");
 	asmda.NewtonKrylov(100, 1.e-10);
 
+	printf("Generating tecplot...\n");
 	double rho_ref = 1.14091202011454;
-	double a_ref = sqrt(kGamma*p/rho);
+	double p = 9.753431315656936E4;
+	double a_ref = sqrt(kGamma*p/rho_ref);
 	asmda.GetTecplot(rho_ref, a_ref);
 
 	return 0;

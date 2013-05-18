@@ -42,28 +42,10 @@ public:
   void InitializeTestProb();
 
   /*!
-   * \brief returns a pointer to the CFD discipline solver
-   * \return cfd_ member value
-   */
-  Quasi1DEuler get_cfd() { return * cfd_;}
-
-  /*!
-   * \brief returns a pointer to the CSM discipline solver
-   * \return csm_ member value
-   */
-  LECSM get_csm() { return * csm_;}
-
-  /*!
    * \brief calculate the system residual vector
    * \result residual based on u_ is calculated and stored in v_
    */
   void CalcResidual();
-
-  /*!
-   * \brief returns the L2 norm of the system residual
-   * \return v_.Norm2() value
-   */
-  double ResidualNorm() { return v_.Norm2(); };
 
   /*!
    * \brief solves the aero-structural system with a Newton Krylow algorithm
@@ -71,14 +53,14 @@ public:
    * \param[in] tol - tolerance with which to solve the system
    * \returns - total number of preconditioner calls
    */
-  void NewtonKrylov(const int & max_iter, const double & tol);
+  int NewtonKrylov(const int & max_iter, const double & tol);
 
   void GetTecplot(const double & rho_ref, const double & a_ref)
-  { cfd_->WriteTecplot(rho_ref, a_ref); }
+  { cfd_.WriteTecplot(rho_ref, a_ref); }
 
  private:
-  Quasi1DEuler * cfd_; ///< used to access quasi_1d_euler matvec routines
-  LECSM * csm_; ///< used to access linear_elastic_csm routines
+  Quasi1DEuler cfd_; ///< used to access quasi_1d_euler matvec routines
+  LECSM csm_; ///< used to access linear_elastic_csm routines
   InnerProdVector u_;
   InnerProdVector v_;
   int num_nodes_, order_;
@@ -114,7 +96,7 @@ private:
  * \brief specialization of matrix-vector product for AeroStruct
  */
 class AeroStructPrecond:
-    public kona::MatrixVectorProduct<InnerProdVector> {
+    public kona::Preconditioner<InnerProdVector> {
 public:
 
   AeroStructPrecond(AeroStructMDA * mda) { mda_ = mda; }
