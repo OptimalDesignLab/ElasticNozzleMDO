@@ -19,11 +19,20 @@
 
 #include <krylov.hpp>
 
+#include "./quasi_1d_euler/exact_solution.hpp"
+
 using std::cout;
 using std::cerr;
 using std::endl;
 using std::string;
 using std::ofstream;
+
+// solution parameters
+static const double kAreaStar = 0.8; // for the exact solution
+static const double kTempStag = 300.0;
+static const double kPressStag = 100000;
+static const double kRGas = 287.0;
+static double rho_R, rho_u_R, e_R;
 
 // ======================================================================
 
@@ -31,9 +40,9 @@ void AeroStructMDA::InitializeTestProb()
 {
   // set material properties for CSM
   double E = 100000000;   // Young's modulus
-  double w = 2;           // fixed width of nozzle
+  double w = 1;           // fixed width of nozzle
   double t = 0.03;        // fixed beam element thickness
-  double h = 2;           // max height of the nozzle
+  double h = 1;           // max height of the nozzle
   csm_.set_material(E, t, w, h);
 
   // start defining the nozzle
@@ -44,45 +53,36 @@ void AeroStructMDA::InitializeTestProb()
   for (int i = 0; i < num_nodes_; i++) {
     // evenly spaced nodes along the x
     x_coord(i) = i*length/(num_nodes_-1);
-    // area based on a 1-by-1 square intake cross-section
-    if (x_coord(i) < 0.5*length) {
-      area(i) = 1.0 + 1.5*(1.0 - x_coord(i)/5.0)*(1.0 - x_coord(i)/5.0);
-    } else {
-      area(i) = 1.0 + 0.5*(1.0 - x_coord(i)/5.0)*(1.0 - x_coord(i)/5.0);
-    }
-    y_coord(i) = (h/2) - (area(i)/(2*w));
+    y_coord(i) = 0.01*(10 - x_coord(i))*x_coord(i);
+    area(i) = w*(h - 2*y_coord(i));
   }
 
   // set the CFD "mesh"
   cfd_.set_x_coord(x_coord);
   cfd_.set_area(area);
 
-  // define and set the left-end boundary conditions
-  double rho_ref = 1.14091202011454;
-  double p = 9.753431315656936E4;
-  double rho = rho_ref;
-  double rho_u = rho*65.45103620864865;
-  double a_ref = sqrt(kGamma*p/rho);
-  double e = p/(kGamma-1.0) + 0.5*rho_u*rho_u/rho;
-  // nondimensionalize
-  rho_u /= (a_ref*rho_ref);
-  e /= (rho_ref*a_ref*a_ref);
-  rho = 1.0; // i.e. non-dimensionalize density by itself
-  cfd_.set_bc_left(rho, rho_u, e);
+  // define reference and boundary conditions
+  double area_left = area(0);
+  double area_right = area(num_nodes_-1);
+  double rho, rho_u, e;
+  CalcFlowExact(kGamma, kRGas, kAreaStar, area_left, true, 
+                kTempStag, kPressStag, rho, rho_u, e);
+  double rho_ref = rho;
+  double press = (kGamma - 1.0)*(e - 0.5*rho_u*rho_u/rho);
+  double a_ref = sqrt(kGamma*press/rho_ref);
+  double rho_L = 1.0;
+  double rho_u_L = rho_u/(a_ref*rho_ref);
+  double e_L = e/(rho_ref*a_ref*a_ref);
+  CalcFlowExact(kGamma, kRGas, kAreaStar, area_right, true,
+                kTempStag, kPressStag, rho, rho_u, e);
+  rho_R = rho/rho_ref;
+  rho_u_R = rho_u/(a_ref*rho_ref);
+  e_R =  e/(rho_ref*a_ref*a_ref); 
 
-  // set the initial flow to the left boundary
-  cfd_.InitialCondition(rho, rho_u, e);
-
-  // define and set the right-end boundary conditions
-  p = 9.277211161772544E4;
-  rho = 1.10083845647356;
-  rho_u = rho * 113.0560581652928;
-  e = p/(kGamma-1.0) + 0.5*rho_u*rho_u/rho;
-  // nondimensionalize
-  rho /= rho_ref;
-  rho_u /= (rho_ref*a_ref);
-  e /= (rho_ref*a_ref*a_ref);
-  cfd_.set_bc_right(rho, rho_u, e);
+  // set boundary and initial conditions
+  cfd_.set_bc_left(rho_L, rho_u_L, e_L);
+  cfd_.InitialCondition(rho_R, rho_u_R, e_R);
+  cfd_.set_bc_right(rho_R, rho_u_R, e_R);
 
   // define any discretization and solver parameters
   cfd_.set_diss_coeff(0.04);
