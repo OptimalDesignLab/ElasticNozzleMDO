@@ -83,7 +83,7 @@ void AeroStructMDA::InitializeTestProb()
   cfd_.set_bc_left(rho_L, rho_u_L, e_L);
   cfd_.InitialCondition(rho_R, rho_u_R, e_R);
   cfd_.set_bc_right(rho_R, rho_u_R, e_R);
-
+  
   // define any discretization and solver parameters
   cfd_.set_diss_coeff(0.04);
 
@@ -110,6 +110,16 @@ void AeroStructMDA::InitializeTestProb()
   csm_.SetBoundaryConds(BCtype, BCval);
 
   csm_.InspectMesh();
+
+  // initialize the aerostructural solution guess
+  for (int i = 0; i < num_nodes_; i++) {
+    u_(3*i) = rho_R;
+    u_(3*i+1) = rho_u_R;
+    u_(3*i+2) = e_R;
+    u_(3*(num_nodes_+i)) = 0.0;
+    u_(3*(num_nodes_+i)+1) = 0.0;
+    u_(3*(num_nodes_+i)+2) = 0.0;
+  }
 }
 
 // ======================================================================
@@ -125,13 +135,13 @@ void AeroStructMDA::CalcResidual()
   // Update the discipline vectors
   cfd_.set_q(u_cfd);                 // set the flow variables
   csm_.set_u(u_csm);                 // set the nodal displacements
-
+  
   // CFD Operations
   csm_.CalcStateVars();              // calculate the area and x coords
   cfd_.set_area(csm_.get_area());   // set the area
   cfd_.set_x_coord(csm_.get_x());   // set the nodal x coordinates
   cfd_.CalcResidual();               // calculate the CFD residual
-  
+
   // CSM Operations
   csm_.set_press(cfd_.get_press()); // set the pressures from CFD
   csm_.CalcResidual();               // calculate the CSM residual
@@ -156,7 +166,7 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
   kona::Preconditioner<InnerProdVector>*
       precond = new AeroStructPrecond(this);
 
-  string filename = "aero_struct_primal.dat";
+  string filename = "aero_struct_krylov.dat";
   ofstream fout(filename.c_str());
 
   int iter = 0;
@@ -184,8 +194,8 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
       cout << "Solver: FGMRES failed in NewtonKrylov!" << endl;
       return -precond_calls;
     }
-      
-    u_ += du;
+    //u_ -= du; // full-Newton step 
+    u_ -= 0.5*du; // damped-Newton step
     precond_calls += krylov_precond_calls;
     iter++;
   }
@@ -238,6 +248,10 @@ void AeroStructProduct::operator()(const InnerProdVector & u,
     v(i) = v_cfd(i);
     v(3*nnp+i) = v_csm(i);
   }
+#if 0
+  // TEMP: identity operator (relaxation)
+  v = u;
+#endif
 }
 
 // ======================================================================
@@ -261,5 +275,8 @@ void AeroStructPrecond::operator()(InnerProdVector & u, InnerProdVector & v)
     v(i) = v_cfd(i);
     v(3*nnp+i) = v_csm(i);
   }
-
+#if 0
+  // TEMP: identity preconditioner
+  v = u;
+#endif
 }
