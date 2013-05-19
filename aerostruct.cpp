@@ -29,6 +29,13 @@ using std::ofstream;
 
 void AeroStructMDA::InitializeTestProb()
 {
+  // set material properties for CSM
+  double E = 100000000;   // Young's modulus
+  double w = 2;           // fixed width of nozzle
+  double t = 0.03;        // fixed beam element thickness
+  double h = 2;           // max height of the nozzle
+  csm_.set_material(E, t, w, h);
+
   // start defining the nozzle
   double length = 10.0;
   InnerProdVector x_coord(num_nodes_, 0.0);
@@ -37,10 +44,13 @@ void AeroStructMDA::InitializeTestProb()
   for (int i = 0; i < num_nodes_; i++) {
     // evenly spaced nodes along the x
     x_coord(i) = i*length/(num_nodes_-1);
-    // parabolic nozzle wall for y coords
-    y_coord(i) = 0.01*(length-x_coord(i))*x_coord(i);
     // area based on a 1-by-1 square intake cross-section
-    area(i) = 2*(1-y_coord(i)); 
+    if (x_coord(i) < 0.5*length) {
+      area(i) = 1.0 + 1.5*(1.0 - x_coord(i)/5.0)*(1.0 - x_coord(i)/5.0);
+    } else {
+      area(i) = 1.0 + 0.5*(1.0 - x_coord(i)/5.0)*(1.0 - x_coord(i)/5.0);
+    }
+    y_coord(i) = (h/2) - (area(i)/(2*w));
   }
 
   // set the CFD "mesh"
@@ -98,13 +108,6 @@ void AeroStructMDA::InitializeTestProb()
   BCtype(3*num_nodes_-2) = 0;
   BCtype(3*num_nodes_-1) = -1;
   csm_.SetBoundaryConds(BCtype, BCval);
-
-  // set material properties for CSM
-  double E = 100000000;   // Young's modulus
-  double w = 1;           // fixed width of nozzle
-  double t = 0.03;        // fixed beam element thickness
-  double h = 1;           // max height of the nozzle
-  csm_.set_material(E, t, w, h);
 
   csm_.InspectMesh();
 }
