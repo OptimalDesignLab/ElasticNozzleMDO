@@ -136,13 +136,13 @@ void AeroStructMDA::CalcResidual()
   csm_.set_u(u_csm);                 // set the nodal displacements
   
   // CFD Operations
-  csm_.CalcArea();                  // calculate the area
-  cfd_.set_area(csm_.get_area());   // set the area
-  cfd_.set_x_coord(csm_.get_x());   // set the nodal x coordinates
+  //csm_.CalcArea();                  // calculate the area
+  //cfd_.set_area(csm_.get_area());   // set the area
+  //cfd_.set_x_coord(csm_.get_x());   // set the nodal x coordinates
   cfd_.CalcResidual();              // calculate the CFD residual
 
   // CSM Operations
-  csm_.set_press(cfd_.get_press()); // set the pressures from CFD
+  //csm_.set_press(cfd_.get_press()); // set the pressures from CFD
   csm_.CalcResidual();               // calculate the CSM residual
 
   // Retreive the discipline residuals
@@ -209,6 +209,8 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
   return -precond_calls;
 }
 
+// ======================================================================
+
 void AeroStructMDA::TestMDAProduct()
 {
   // create a random vector to apply Jacobian to
@@ -221,29 +223,41 @@ void AeroStructMDA::TestMDAProduct()
 
   kona::MatrixVectorProduct<InnerProdVector>* 
       mat_vec = new AeroStructProduct(this);  
-  (*mat_vec)(u_, v);
+  (*mat_vec)(u, v);
   delete mat_vec;
 
   // evaluate the Jacobian-vector product using backward difference
-  u_save = u_;  // save flow state for later
   
   // evaluate residual and save
   CalcResidual();
   v_fd = v_;
-
+  
+  u_save = u_;  // save the state for later
+  
   // perturb flow and re-evaluate residual
   double fd_eps = 1.E-7;
-  u_ -= fd_eps*u_save;
+  u_ += fd_eps*u;
   CalcResidual();
   v_fd -= v_;
-  v_fd /= fd_eps;
+  v_fd /= -fd_eps; // minus sign accounts for switch in order
 
   // take difference between two products and store in q_ for output
   u.EqualsAXPlusBY(1.0, v, -1.0, v_fd);
+
+  cout << "TestMDAProduct: product elements corresponding to cfd:" << endl;
+  for (int i = 0; i < 3*num_nodes_; i++)
+    cout << "delta v(" << i << ") = " << u(i) << endl;
+  cout << "TestMDAProduct: product elements corresponding to csm:" << endl;
+  for (int i = 0; i < 3*num_nodes_; i++)
+    cout << "delta v(" << i << ") = " << u(3*num_nodes_ + i) << endl;
+
   double L2_error = u.Norm2();
-  cout << "AeroStructProduct: "
+  cout << "TestMDAProduct: "
        << "L2 error between analytical and FD Jacobian-vector product: "
        << L2_error << endl;
+
+  // reset the state
+  u_ = u_save;
 }
 
 // ======================================================================
@@ -271,6 +285,7 @@ void AeroStructProduct::operator()(const InnerProdVector & u,
   // Compute D*u_csm
   mda_->csm_.Calc_dSdu_Product(u_csm, v_csm);
 
+#if 0
   // Compute B*u_csm = (dR/dA)*(dA/d(delA))*(d(delA)/du)*u_csm =
   mda_->csm_.Calc_dAdu_Product(u_csm, wrk);
   // NOTE: below, I assume u_csm is not needed anymore, so I can use it for work
@@ -282,7 +297,8 @@ void AeroStructProduct::operator()(const InnerProdVector & u,
   // NOTE: below, I assume u_cfd is not needed anymore so I can use it for work
   mda_->csm_.Calc_dSdp_Product(wrk, u_cfd);
   v_csm += u_cfd;
-
+#endif
+  
   // Finally, assemble v from its cfd and csm parts
   for (int i = 0; i < 3*nnp; i++) {
     v(i) = v_cfd(i);

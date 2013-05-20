@@ -55,6 +55,11 @@ public:
    */
   int NewtonKrylov(const int & max_iter, const double & tol);
 
+  /*!
+   * \brief tests the AeroStructProduct using a finite-difference approximation
+   *
+   * \pre the state defined in u_ must be "reasonable"
+   */
   void TestMDAProduct();
 
   void GetTecplot(const double & rho_ref, const double & a_ref)
