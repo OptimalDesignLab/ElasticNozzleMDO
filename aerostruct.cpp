@@ -144,13 +144,13 @@ void AeroStructMDA::CalcResidual()
   UpdateState();
 
   // CFD Operations
-  // csm_.CalcArea();                  // calculate the area
-  // cfd_.set_area(csm_.get_area());   // set the area
-  // cfd_.set_x_coord(csm_.get_x());   // set the nodal x coordinates
+  csm_.CalcArea();                  // calculate the area
+  cfd_.set_area(csm_.get_area());   // set the area
+  cfd_.set_x_coord(csm_.get_x());   // set the nodal x coordinates
   cfd_.CalcResidual();              // calculate the CFD residual
 
-  // CSM Operations
-  // csm_.set_press(cfd_.get_press()); // set the pressures from CFD
+  // CSM Operations  
+  csm_.set_press(cfd_.get_press()); // set the pressures from CFD
   csm_.CalcResidual();               // calculate the CSM residual
 
   // Retreive the discipline residuals
@@ -256,9 +256,12 @@ void AeroStructMDA::TestMDAProduct()
   for (int i = 0; i < 3*num_nodes_; i++)
     cout << "delta v(" << i << ") = " << u(i) << endl;
   cout << "TestMDAProduct: product elements corresponding to csm:" << endl;
-  for (int i = 0; i < 3*num_nodes_; i++)
-    cout << "delta v(" << i << ") = " << u(3*num_nodes_ + i) << endl;
-
+  for (int i = 3*num_nodes_; i < 6*num_nodes_; i++) {
+    //cout << "delta v(" << i << ") = " << u(3*num_nodes_ + i) << endl;
+    cout << "v(" << i << ")    = " << v(i) << endl;
+    cout << "v_fd(" << i << ") = " << v_fd(i) << endl;
+  }
+    
   double L2_error = u.Norm2();
   cout << "TestMDAProduct: "
        << "L2 error between analytical and FD Jacobian-vector product: "
@@ -293,19 +296,18 @@ void AeroStructProduct::operator()(const InnerProdVector & u,
   // Compute D*u_csm
   mda_->csm_.Calc_dSdu_Product(u_csm, v_csm);
 
-#if 0
+
   // Compute B*u_csm = (dR/dA)*(dA/d(delA))*(d(delA)/du)*u_csm =
   mda_->csm_.Calc_dAdu_Product(u_csm, wrk);
   // NOTE: below, I assume u_csm is not needed anymore, so I can use it for work
   mda_->cfd_.JacobianAreaProduct(wrk, u_csm);
   v_cfd += u_csm;
-  
+
   // Compute C*u_cfd = (dS/dp)*(dp/dq)*u_cfd = (dS/dp)*wrk
   mda_->cfd_.CalcDPressDQProduct(u_cfd, wrk);
   // NOTE: below, I assume u_cfd is not needed anymore so I can use it for work
   mda_->csm_.Calc_dSdp_Product(wrk, u_cfd);
   v_csm += u_cfd;
-#endif
   
   // Finally, assemble v from its cfd and csm parts
   for (int i = 0; i < 3*nnp; i++) {
