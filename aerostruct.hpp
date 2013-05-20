@@ -42,6 +42,12 @@ public:
   void InitializeTestProb();
 
   /*!
+   * \brief update the system state and cascade the changes into disciplines
+   * \result states stored in u_ are split and set to disciplines
+   */
+  void UpdateState();
+
+  /*!
    * \brief calculate the system residual vector
    * \result residual based on u_ is calculated and stored in v_
    */

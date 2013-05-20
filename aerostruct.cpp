@@ -123,7 +123,7 @@ void AeroStructMDA::InitializeTestProb()
 
 // ======================================================================
 
-void AeroStructMDA::CalcResidual()
+void AeroStructMDA::UpdateState()
 {
   // Split system u into CSM and CFD vectors  
   InnerProdVector u_cfd(3*num_nodes_, 0.0), u_csm(3*num_nodes_, 0.0);
@@ -134,15 +134,23 @@ void AeroStructMDA::CalcResidual()
   // Update the discipline vectors
   cfd_.set_q(u_cfd);                 // set the flow variables
   csm_.set_u(u_csm);                 // set the nodal displacements
-  
+}
+
+// ======================================================================
+
+void AeroStructMDA::CalcResidual()
+{ 
+  // Push the u_ changes onto the individual disciplines
+  UpdateState();
+
   // CFD Operations
-  //csm_.CalcArea();                  // calculate the area
-  //cfd_.set_area(csm_.get_area());   // set the area
-  //cfd_.set_x_coord(csm_.get_x());   // set the nodal x coordinates
+  // csm_.CalcArea();                  // calculate the area
+  // cfd_.set_area(csm_.get_area());   // set the area
+  // cfd_.set_x_coord(csm_.get_x());   // set the nodal x coordinates
   cfd_.CalcResidual();              // calculate the CFD residual
 
   // CSM Operations
-  //csm_.set_press(cfd_.get_press()); // set the pressures from CFD
+  // csm_.set_press(cfd_.get_press()); // set the pressures from CFD
   csm_.CalcResidual();               // calculate the CSM residual
 
   // Retreive the discipline residuals
@@ -170,10 +178,11 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
 
   int iter = 0;
   int precond_calls = 0;
-  while (iter < max_iter) {    
+  while (iter < max_iter) {
     // evaluate the residual and its norm
     CalcResidual();  // merge aero residual with struct residual
-    double norm = v_.Norm2();   // evaluate the L2 norm
+    InnerProdVector b(-v_);
+    double norm = b.Norm2();   // evaluate the L2 norm
     cout << "iter = " << iter
          << ": L2 norm of residual = " << norm << endl;
     if ( (norm < tol) || (norm < 1.e-14) ) {
@@ -187,16 +196,17 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
     InnerProdVector du(6*num_nodes_, 0.0);
     int krylov_precond_calls;
     try {
-      kona::FGMRES(m, tol, v_, du, *mat_vec, *precond,
+      kona::FGMRES(m, tol, b, du, *mat_vec, *precond,
                    krylov_precond_calls, fout);
     } catch (...) {
       cout << "Solver: FGMRES failed in NewtonKrylov!" << endl;
       return -precond_calls;
     }
 
+    // update the individual discipline states
     double damp = 0.5;
     for (int i=0; i<3*num_nodes_; i++) {
-      u_(i) -= damp*du(i);
+      u_(i) += damp*du(i);
       u_(3*num_nodes_+i) = damp*du(3*num_nodes_+i);
     }
     precond_calls += krylov_precond_calls;
@@ -221,18 +231,16 @@ void AeroStructMDA::TestMDAProduct()
   for (int i = 0; i < 6*num_nodes_; i++)
     u(i) = dist(gen);
 
+  u_save = u_;  // save the state for later
+
   kona::MatrixVectorProduct<InnerProdVector>* 
       mat_vec = new AeroStructProduct(this);  
   (*mat_vec)(u, v);
   delete mat_vec;
-
-  // evaluate the Jacobian-vector product using backward difference
   
   // evaluate residual and save
   CalcResidual();
   v_fd = v_;
-  
-  u_save = u_;  // save the state for later
   
   // perturb flow and re-evaluate residual
   double fd_eps = 1.E-7;
