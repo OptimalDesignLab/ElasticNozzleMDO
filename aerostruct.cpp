@@ -32,7 +32,6 @@ static const double kAreaStar = 0.8; // for the exact solution
 static const double kTempStag = 300.0;
 static const double kPressStag = 100000;
 static const double kRGas = 287.0;
-static double rho_R, rho_u_R, e_R;
 
 // ======================================================================
 
@@ -75,9 +74,9 @@ void AeroStructMDA::InitializeTestProb()
   double e_L = e/(rho_ref*a_ref*a_ref);
   CalcFlowExact(kGamma, kRGas, kAreaStar, area_right, true,
                 kTempStag, kPressStag, rho, rho_u, e);
-  rho_R = rho/rho_ref;
-  rho_u_R = rho_u/(a_ref*rho_ref);
-  e_R =  e/(rho_ref*a_ref*a_ref); 
+  double rho_R = rho/rho_ref;
+  double rho_u_R = rho_u/(a_ref*rho_ref);
+  double e_R =  e/(rho_ref*a_ref*a_ref); 
 
   // set boundary and initial conditions
   cfd_.set_bc_left(rho_L, rho_u_L, e_L);
@@ -137,10 +136,10 @@ void AeroStructMDA::CalcResidual()
   csm_.set_u(u_csm);                 // set the nodal displacements
   
   // CFD Operations
-  csm_.CalcStateVars();              // calculate the area and x coords
+  csm_.CalcArea();                  // calculate the area
   cfd_.set_area(csm_.get_area());   // set the area
   cfd_.set_x_coord(csm_.get_x());   // set the nodal x coordinates
-  cfd_.CalcResidual();               // calculate the CFD residual
+  cfd_.CalcResidual();              // calculate the CFD residual
 
   // CSM Operations
   csm_.set_press(cfd_.get_press()); // set the pressures from CFD
@@ -194,8 +193,12 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
       cout << "Solver: FGMRES failed in NewtonKrylov!" << endl;
       return -precond_calls;
     }
-    //u_ -= du; // full-Newton step 
-    u_ -= 0.5*du; // damped-Newton step
+
+    double damp = 0.5;
+    for (int i=0; i<3*num_nodes_; i++) {
+      u_(i) -= damp*du(i);
+      u_(3*num_nodes_+i) = damp*du(3*num_nodes_+i);
+    }
     precond_calls += krylov_precond_calls;
     iter++;
   }
@@ -239,7 +242,7 @@ void AeroStructProduct::operator()(const InnerProdVector & u,
   
   // Compute C*u_cfd = (dS/dp)*(dp/dq)*u_cfd = (dS/dp)*wrk
   mda_->cfd_.CalcDPressDQProduct(u_cfd, wrk);
-  // NOTE: below, I assume u_cfd is not needed anymore so I can use it for work (payback!)
+  // NOTE: below, I assume u_cfd is not needed anymore so I can use it for work
   mda_->csm_.Calc_dSdp_Product(wrk, u_cfd);
   v_csm += u_cfd;
 
