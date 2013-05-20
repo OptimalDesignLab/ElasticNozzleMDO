@@ -55,6 +55,8 @@ public:
    */
   int NewtonKrylov(const int & max_iter, const double & tol);
 
+  void TestMDAProduct();
+
   void GetTecplot(const double & rho_ref, const double & a_ref)
   { cfd_.WriteTecplot(rho_ref, a_ref); }
 

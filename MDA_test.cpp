@@ -20,6 +20,10 @@ int main() {
 	printf("Initializing problem...\n");
 	asmda.InitializeTestProb();
 
+#if 1
+	printf("Validating MDA product...\n");
+	asmda.TestMDAProduct();
+#else
 	printf("Starting solver...\n");
 	asmda.NewtonKrylov(100, 1.e-10);
 
@@ -28,6 +32,7 @@ int main() {
 	double p = 9.753431315656936E4;
 	double a_ref = sqrt(kGamma*p/rho_ref);
 	asmda.GetTecplot(rho_ref, a_ref);
+#endif
 
 	return 0;
 }

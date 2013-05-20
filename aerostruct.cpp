@@ -52,7 +52,7 @@ void AeroStructMDA::InitializeTestProb()
   for (int i = 0; i < num_nodes_; i++) {
     // evenly spaced nodes along the x
     x_coord(i) = i*length/(num_nodes_-1);
-    y_coord(i) = 0.01*(10 - x_coord(i))*x_coord(i);
+    y_coord(i) = 0.025*(10 - x_coord(i))*x_coord(i);
     area(i) = w*(h - 2*y_coord(i));
   }
 
@@ -207,6 +207,43 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
        << "failed to converge in " << max_iter << " iterations." << endl;
   //throw(-1);
   return -precond_calls;
+}
+
+void AeroStructMDA::TestMDAProduct()
+{
+  // create a random vector to apply Jacobian to
+  InnerProdVector u(6*num_nodes_, 0.0), v(6*num_nodes_, 0.0), 
+      v_fd(6*num_nodes_, 0.0), u_save(6*num_nodes_, 0.0);
+  boost::random::mt19937 gen;
+  boost::random::uniform_real_distribution<double> dist(-1.0, 1.0);
+  for (int i = 0; i < 6*num_nodes_; i++)
+    u(i) = dist(gen);
+
+  kona::MatrixVectorProduct<InnerProdVector>* 
+      mat_vec = new AeroStructProduct(this);  
+  (*mat_vec)(u_, v);
+  delete mat_vec;
+
+  // evaluate the Jacobian-vector product using backward difference
+  u_save = u_;  // save flow state for later
+  
+  // evaluate residual and save
+  CalcResidual();
+  v_fd = v_;
+
+  // perturb flow and re-evaluate residual
+  double fd_eps = 1.E-7;
+  u_ -= fd_eps*u_save;
+  CalcResidual();
+  v_fd -= v_;
+  v_fd /= fd_eps;
+
+  // take difference between two products and store in q_ for output
+  u.EqualsAXPlusBY(1.0, v, -1.0, v_fd);
+  double L2_error = u.Norm2();
+  cout << "AeroStructProduct: "
+       << "L2 error between analytical and FD Jacobian-vector product: "
+       << L2_error << endl;
 }
 
 // ======================================================================
