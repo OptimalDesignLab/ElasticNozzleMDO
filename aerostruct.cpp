@@ -296,7 +296,6 @@ void AeroStructProduct::operator()(const InnerProdVector & u,
   // Compute D*u_csm
   mda_->csm_.Calc_dSdu_Product(u_csm, v_csm);
 
-
   // Compute B*u_csm = (dR/dA)*(dA/d(delA))*(d(delA)/du)*u_csm =
   mda_->csm_.Calc_dAdu_Product(u_csm, wrk);
   // NOTE: below, I assume u_csm is not needed anymore, so I can use it for work
