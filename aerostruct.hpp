@@ -33,9 +33,12 @@ public:
       u_(6*num_nodes,0.0), 
       v_(6*num_nodes,0.0),
       cfd_(num_nodes, order),
-      csm_(num_nodes)
-  { num_nodes_ = num_nodes;
-    order_ = order; }
+      csm_(num_nodes) {
+    num_nodes_ = num_nodes;
+    order_ = order;
+    scale_cfd_ = 1.0;
+    scale_csm_ = 1.0;
+  }
 
   ~AeroStructMDA() {} ///< class destructor
 

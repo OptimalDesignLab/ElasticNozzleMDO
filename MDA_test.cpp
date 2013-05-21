@@ -14,7 +14,7 @@ using namespace std;
 int main() {
 
   int nnp = 21; //81;
-	int order = 4;
+	int order = 3;
 	AeroStructMDA asmda(nnp, order);
 
 	printf("Initializing problem...\n");
@@ -25,7 +25,7 @@ int main() {
 	asmda.TestMDAProduct();
 #else
 	printf("Starting solver...\n");
-	asmda.NewtonKrylov(100, 1.e-10);
+	asmda.NewtonKrylov(10, 1.e-10);
 
 	printf("Generating tecplot...\n");
 	double rho_ref = 1.14091202011454;
@@ -34,5 +34,8 @@ int main() {
 	asmda.GetTecplot(rho_ref, a_ref);
 #endif
 
+	printf("Validating MDA product...\n");
+	asmda.TestMDAProduct();
+        
 	return 0;
 }

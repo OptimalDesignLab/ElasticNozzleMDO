@@ -40,8 +40,8 @@ void AeroStructMDA::InitializeTestProb()
   // set material properties for CSM
   double E = 10000000;   // Young's modulus
   double w = 1;           // fixed width of nozzle
-  double t = 0.03;        // fixed beam element thickness
-  double h = 1;           // max height of the nozzle
+  double t = 0.5;        // fixed beam element thickness
+  double h = 2;           // max height of the nozzle
   csm_.set_material(E, t, w, h);
 
   // start defining the nozzle
@@ -52,7 +52,7 @@ void AeroStructMDA::InitializeTestProb()
   for (int i = 0; i < num_nodes_; i++) {
     // evenly spaced nodes along the x
     x_coord(i) = i*length/(num_nodes_-1);
-    y_coord(i) = 0.01*(10 - x_coord(i))*x_coord(i);
+    y_coord(i) = 0.0025*(10 - x_coord(i))*x_coord(i);
     area(i) = w*(h - 2*y_coord(i));
   }
 
@@ -157,6 +157,9 @@ void AeroStructMDA::CalcResidual()
   const InnerProdVector & v_cfd = cfd_.get_res();
   const InnerProdVector & v_csm = csm_.get_res();
 
+  scale_cfd_ = 1.0/v_cfd.Norm2();
+  scale_csm_ = 1.0/v_csm.Norm2();
+  
   // Merge the disciplines into the system residual
   for (int i=0; i<3*num_nodes_; i++) {
     v_(i) = v_cfd(i);
@@ -199,12 +202,17 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
       return precond_calls;
     }
 
+    // scale equations
+    scale_cfd_ = 1.00;
+    scale_csm_ = 1.00;
+    ScaleVector(v_);
+    
     // Update CFD preconditioner
     cfd_.BuildAndFactorPreconditioner();
     
     // solve for the Newton update du and add to u
-    int m = 10;
-    double tol = 1.0e-2;
+    int m = 100;
+    double tol = 1.0e-4;
     InnerProdVector du(6*num_nodes_, 0.0);
     int krylov_precond_calls;
     try {
@@ -216,10 +224,10 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
     }
 
     // update the individual discipline states
-    double damp = 1;
+    double damp = 1.00;
     for (int i=0; i<3*num_nodes_; i++) {
       u_(i) += damp*du(i);
-      u_(3*num_nodes_+i) = damp*du(3*num_nodes_+i);
+      u_(3*num_nodes_+i) += damp*du(3*num_nodes_+i);
     }
     precond_calls += krylov_precond_calls;
     iter++;
@@ -244,7 +252,7 @@ void AeroStructMDA::TestMDAProduct()
     u(i) = dist(gen);
 
   u_save = u_;  // save the state for later
-
+  
   kona::MatrixVectorProduct<InnerProdVector>* 
       mat_vec = new AeroStructProduct(this);  
   (*mat_vec)(u, v);
@@ -319,12 +327,15 @@ void AeroStructProduct::operator()(const InnerProdVector & u,
   // NOTE: below, I assume u_cfd is not needed anymore so I can use it for work
   mda_->csm_.Calc_dSdp_Product(wrk, u_cfd);
   v_csm += u_cfd;
-  
+
   // Finally, assemble v from its cfd and csm parts
   for (int i = 0; i < 3*nnp; i++) {
     v(i) = v_cfd(i);
     v(3*nnp+i) = v_csm(i);
   }
+
+  // Scale product
+  mda_->ScaleVector(v);
 #if 0
   // TEMP: identity operator (relaxation)
   v = u;
@@ -337,8 +348,8 @@ void AeroStructPrecond::operator()(InnerProdVector & u, InnerProdVector & v)
 {
   // decompose u into its cfd and csm parts, and create some work arrays
   int nnp = mda_->num_nodes_;
-  InnerProdVector u_cfd(3*nnp, 0.0), v_cfd(3*nnp, 0.0),
-      v_csm(3*nnp, 0.0);
+  InnerProdVector u_cfd(3*nnp, 0.0), wrk(nnp, 0.0),
+      v_cfd(3*nnp, 0.0), v_csm(3*nnp, 0.0);
   for (int i = 0; i < 3*nnp; i++) {
     u_cfd(i) = u(i);
     v_csm(i) = u(3*nnp+i); // v_csm = u_csm (no preconditioning for CSM)
@@ -346,6 +357,11 @@ void AeroStructPrecond::operator()(InnerProdVector & u, InnerProdVector & v)
   // inherit the preconditioner calculated at every iteration for the CFD
   mda_->cfd_.Precondition(u_cfd, v_cfd);
 
+  // Compute v_csm = u_csm - C*v_cfd
+  mda_->cfd_.CalcDPressDQProduct(v_cfd, wrk);
+  mda_->csm_.Calc_dSdp_Product(wrk, u_cfd);
+  v_csm -= u_cfd;
+  
   // merge the preconditioners and pass it up
   for (int i = 0; i < 3*nnp; i++) {
     v(i) = v_cfd(i);
