@@ -38,7 +38,7 @@ static const double kRGas = 287.0;
 void AeroStructMDA::InitializeTestProb()
 {
   // set material properties for CSM
-  double E = 100000000;   // Young's modulus
+  double E = 10000000;   // Young's modulus
   double w = 1;           // fixed width of nozzle
   double t = 0.03;        // fixed beam element thickness
   double h = 1;           // max height of the nozzle
@@ -52,7 +52,7 @@ void AeroStructMDA::InitializeTestProb()
   for (int i = 0; i < num_nodes_; i++) {
     // evenly spaced nodes along the x
     x_coord(i) = i*length/(num_nodes_-1);
-    y_coord(i) = 0.025*(10 - x_coord(i))*x_coord(i);
+    y_coord(i) = 0.01*(10 - x_coord(i))*x_coord(i);
     area(i) = w*(h - 2*y_coord(i));
   }
 
@@ -216,7 +216,7 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
     }
 
     // update the individual discipline states
-    double damp = 0.5;
+    double damp = 1;
     for (int i=0; i<3*num_nodes_; i++) {
       u_(i) += damp*du(i);
       u_(3*num_nodes_+i) = damp*du(3*num_nodes_+i);
@@ -255,7 +255,7 @@ void AeroStructMDA::TestMDAProduct()
   v_fd = v_;
   
   // perturb flow and re-evaluate residual
-  double fd_eps = 1.E-7;
+  double fd_eps = 1.E-6;
   u_ += fd_eps*u;
   CalcResidual();
   v_fd -= v_;
@@ -269,9 +269,9 @@ void AeroStructMDA::TestMDAProduct()
     cout << "delta v(" << i << ") = " << u(i) << endl;
   cout << "TestMDAProduct: product elements corresponding to csm:" << endl;
   for (int i = 3*num_nodes_; i < 6*num_nodes_; i++) {
-    //cout << "delta v(" << i << ") = " << u(3*num_nodes_ + i) << endl;
-    cout << "v(" << i << ")    = " << v(i) << endl;
-    cout << "v_fd(" << i << ") = " << v_fd(i) << endl;
+    // cout << "v(" << i << ")    = " << v(i) << endl;
+    // cout << "v_fd(" << i << ") = " << v_fd(i) << endl;
+    cout << "delta v(" << i << ") = " << u(i) << endl;
   }
     
   double L2_error = u.Norm2();
@@ -307,7 +307,6 @@ void AeroStructProduct::operator()(const InnerProdVector & u,
 
   // Compute D*u_csm
   mda_->csm_.Calc_dSdu_Product(u_csm, v_csm);
-
 
   // Compute B*u_csm = (dR/dA)*(dA/d(delA))*(d(delA)/du)*u_csm =
   mda_->csm_.Calc_dAdu_Product(u_csm, wrk);

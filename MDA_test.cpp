@@ -20,7 +20,7 @@ int main() {
 	printf("Initializing problem...\n");
 	asmda.InitializeTestProb();
 
-#if 1
+#if 0
 	printf("Validating MDA product...\n");
 	asmda.TestMDAProduct();
 #else
