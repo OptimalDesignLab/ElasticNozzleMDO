@@ -166,6 +166,15 @@ void AeroStructMDA::CalcResidual()
 
 // ======================================================================
 
+void AeroStructMDA::ScaleVector(InnerProdVector & u) {
+  for (int i=0; i<3*num_nodes_; i++) {
+    u(i) *= scale_cfd_;
+    u(3*num_nodes_+i) *= scale_csm_;
+  }
+}
+
+// ======================================================================
+
 int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
 {
   kona::MatrixVectorProduct<InnerProdVector>* 
@@ -190,6 +199,9 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
       return precond_calls;
     }
 
+    // Update CFD preconditioner
+    cfd_.BuildAndFactorPreconditioner();
+    
     // solve for the Newton update du and add to u
     int m = 10;
     double tol = 1.0e-2;
@@ -333,7 +345,6 @@ void AeroStructPrecond::operator()(InnerProdVector & u, InnerProdVector & v)
     v_csm(i) = u(3*nnp+i); // v_csm = u_csm (no preconditioning for CSM)
   }
   // inherit the preconditioner calculated at every iteration for the CFD
-  mda_->cfd_.BuildAndFactorPreconditioner();
   mda_->cfd_.Precondition(u_cfd, v_cfd);
 
   // merge the preconditioners and pass it up

@@ -54,6 +54,12 @@ public:
   void CalcResidual();
 
   /*!
+   * \brief applies scaling to the cfd and csm components of u
+   * \param[in,out] u - vector to be scaled
+   */
+  void ScaleVector(InnerProdVector & u);
+  
+  /*!
    * \brief solves the aero-structural system with a Newton Krylow algorithm
    * \param[in] max_iter - maximum number of iterations permitted
    * \param[in] tol - tolerance with which to solve the system
@@ -74,6 +80,8 @@ public:
  private:
   Quasi1DEuler cfd_; ///< used to access quasi_1d_euler matvec routines
   LECSM csm_; ///< used to access linear_elastic_csm routines
+  double scale_cfd_; ///< used to scale linearized cfd equations
+  double scale_csm_; ///< used to scale linearized csm equations
   InnerProdVector u_;
   InnerProdVector v_;
   int num_nodes_, order_;
