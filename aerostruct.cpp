@@ -40,7 +40,7 @@ void AeroStructMDA::InitializeTestProb()
   // set material properties for CSM
   double E = 10000000;   // Young's modulus
   double w = 1;           // fixed width of nozzle
-  double t = 0.5;        // fixed beam element thickness
+  double t = 0.05;        // fixed beam element thickness
   double h = 2;           // max height of the nozzle
   csm_.set_material(E, t, w, h);
 
@@ -347,13 +347,23 @@ void AeroStructPrecond::operator()(InnerProdVector & u, InnerProdVector & v)
     u_cfd(i) = u(i);
     v_csm(i) = u(3*nnp+i); // v_csm = u_csm (no preconditioning for CSM)
   }
-  // inherit the preconditioner calculated at every iteration for the CFD
+
+#if 0  
+  // Compute v_cfd = M^{-1}(u_cfd - B*u_csm)
+  mda_->csm_.Calc_dAdu_Product(v_csm, wrk);
+  mda_->cfd_.JacobianAreaProduct(wrk, v_cfd);
+  u_cfd.EqualsAXPlusBY(1.0, u_cfd, -1.0, v_cfd);
+  
+  // inherit the preconditioner calculated at every iteration for the CFD  
   mda_->cfd_.Precondition(u_cfd, v_cfd);
 
   // Compute v_csm = u_csm - C*v_cfd
   mda_->cfd_.CalcDPressDQProduct(v_cfd, wrk);
   mda_->csm_.Calc_dSdp_Product(wrk, u_cfd);
   v_csm -= u_cfd;
+#endif
+
+  mda_->cfd_.Precondition(u_cfd, v_cfd);
   
   // merge the preconditioners and pass it up
   for (int i = 0; i < 3*nnp; i++) {
