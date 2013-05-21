@@ -123,25 +123,21 @@ void AeroStructMDA::InitializeTestProb()
 
 // ======================================================================
 
-void AeroStructMDA::UpdateState()
-{
+void AeroStructMDA::CalcResidual()
+{ 
+  // Reset CSM coordinates back to the original geometry
+  csm_.ResetCoords();
+
   // Split system u into CSM and CFD vectors  
   InnerProdVector u_cfd(3*num_nodes_, 0.0), u_csm(3*num_nodes_, 0.0);
   for (int i = 0; i < 3*num_nodes_; i++) {
     u_cfd(i) = u_(i);
     u_csm(i) = u_(3*num_nodes_+i);
   }
+
   // Update the discipline vectors
   cfd_.set_q(u_cfd);                 // set the flow variables
   csm_.set_u(u_csm);                 // set the nodal displacements
-}
-
-// ======================================================================
-
-void AeroStructMDA::CalcResidual()
-{ 
-  // Push the u_ changes onto the individual disciplines
-  UpdateState();
 
   // CFD Operations
   csm_.CalcArea();                  // calculate the area
@@ -225,10 +221,7 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
 
     // update the individual discipline states
     double damp = 1.00;
-    for (int i=0; i<3*num_nodes_; i++) {
-      u_(i) += damp*du(i);
-      u_(3*num_nodes_+i) += damp*du(3*num_nodes_+i);
-    }
+    u_ += damp*du;
     precond_calls += krylov_precond_calls;
     iter++;
   }
