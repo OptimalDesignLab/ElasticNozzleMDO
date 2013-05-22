@@ -222,6 +222,14 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
       cout << "Solver: NewtonKrylov converged!" << endl;
       return precond_calls;
     }
+    
+#if 0
+    // reset CSM grid to original geometry before peforming JacobianVectorProduct
+    csm_.ResetCoords();
+    csm_.CalcArea();
+    cfd_.set_area(csm_.get_area());
+    cfd_.set_x_coord(csm_.get_x());
+#endif
 
     // scale residual
     //scale_cfd_ = 1.00;
