@@ -42,7 +42,7 @@ void AeroStructMDA::InitializeTestProb()
   double w = 1.0;           // fixed width of nozzle
   double t = 0.01;        // fixed beam element thickness
   double h = 2;           // max height of the nozzle
-  csm_.set_material(E, t, w, h);
+  
 
   // start defining the nozzle
   double length = 1.0;
@@ -57,6 +57,37 @@ void AeroStructMDA::InitializeTestProb()
     area(i) = w*(h - 2*y_coord(i));
   }
 
+  // initialize the CFD solver
+  InitializeCFD(x_coord, area);
+
+  // determine the nodal structural boundary conditions
+  InnerProdVector BCtype(3*num_nodes_, 0.0);
+  InnerProdVector BCval(3*num_nodes_, 0.0);
+  for (int i=0; i<num_nodes_; i++) {
+    BCtype(3*i) = 0;
+    BCtype(3*i+1) = -1;
+    BCtype(3*i+2) = -1;
+    BCval(3*i) = 0;
+    BCval(3*i+1) = 0;
+    BCval(3*i+2) = 0;
+  }
+  BCtype(0) = 0;
+  BCtype(1) = 0;
+  BCtype(2) = -1;
+  BCtype(3*num_nodes_-3) = 0;
+  BCtype(3*num_nodes_-2) = 0;
+  BCtype(3*num_nodes_-1) = -1;
+
+  // initialize the CSM solver
+  InitializeCSM(x_coord, y_coord, BCtype, BCval, E, t, w, h);
+
+  csm_.InspectMesh();
+}
+
+// ======================================================================
+
+void AeroStructMDA::InitializeCFD(InnerProdVector & x_coord, InnerProdVector & area)
+{
   // set the CFD "mesh"
   cfd_.set_x_coord(x_coord);
   cfd_.set_area(area);
@@ -87,41 +118,33 @@ void AeroStructMDA::InitializeTestProb()
   // define any discretization and solver parameters
   cfd_.set_diss_coeff(0.04);
 
-  // generate CSM mesh
-  csm_.GenerateMesh(x_coord, y_coord);
-
-  // determine the nodal structural boundary conditions
-  InnerProdVector BCtype(3*num_nodes_, 0.0);
-  InnerProdVector BCval(3*num_nodes_, 0.0);
-  for (int i=0; i<num_nodes_; i++) {
-    BCtype(3*i) = 0;
-    BCtype(3*i+1) = -1;
-    BCtype(3*i+2) = -1;
-    BCval(3*i) = 0;
-    BCval(3*i+1) = 0;
-    BCval(3*i+2) = 0;
-  }
-  BCtype(0) = 0;
-  BCtype(1) = 0;
-  BCtype(2) = -1;
-  BCtype(3*num_nodes_-3) = 0;
-  BCtype(3*num_nodes_-2) = 0;
-  BCtype(3*num_nodes_-1) = -1;
-  csm_.SetBoundaryConds(BCtype, BCval);
-
-  csm_.InspectMesh();
-
-  // initialize the aerostructural solution guess
+  // initialize the CFD part of the aerostructural solution guess
   for (int i = 0; i < num_nodes_; i++) {
     u_(3*i) = rho_R;
     u_(3*i+1) = rho_u_R;
     u_(3*i+2) = e_R;
+  }
+}
+
+// ======================================================================
+
+void AeroStructMDA::InitializeCSM(InnerProdVector & x_coord, InnerProdVector & y_coord,
+                          InnerProdVector & BCtype, InnerProdVector & BCval,
+                          double E, double t, double w, double h)
+{
+  // set material properties
+  csm_.set_material(E, t, w, h);
+  // create the CSM mesh
+  csm_.GenerateMesh(x_coord, y_coord);
+  // set the nodal degrees of freedom
+  csm_.SetBoundaryConds(BCtype, BCval);
+  // initialize the CSM part of the aerostructural solution guess
+  for (int i = 0; i < num_nodes_; i++) {
     u_(3*(num_nodes_+i)) = 0.0;
     u_(3*(num_nodes_+i)+1) = 0.0;
     u_(3*(num_nodes_+i)+2) = 0.0;
   }
 }
-
 // ======================================================================
 
 void AeroStructMDA::CalcResidual()
@@ -210,6 +233,14 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
       cout << "Solver: NewtonKrylov converged!" << endl;
       return precond_calls;
     }
+    
+#if 0
+    // reset CSM grid to original geometry before peforming JacobianVectorProduct
+    csm_.ResetCoords();
+    csm_.CalcArea();
+    cfd_.set_area(csm_.get_area());
+    cfd_.set_x_coord(csm_.get_x());
+#endif
 
     // scale residual
     CalcRowScaling(b);
@@ -306,6 +337,17 @@ void AeroStructMDA::TestMDAProduct()
 
 // ======================================================================
 
+void AeroStructMDA::PrintDisplacements()
+{
+  for (int i=0; i<num_nodes_; i++) {
+    cout << "Node " << i << " :: X-Displacement " << u_(3*(num_nodes_+i)) << endl;
+    cout << "Node " << i << " :: Y-Displacement " << u_(3*(num_nodes_+i)+1) << endl;
+    cout << "Node " << i << " :: rotation " << u_(3*(num_nodes_+i)+2) << endl;
+  }
+}
+
+// ======================================================================
+
 void AeroStructProduct::operator()(const InnerProdVector & u, 
                                    InnerProdVector & v) 
 {
@@ -340,6 +382,57 @@ void AeroStructProduct::operator()(const InnerProdVector & u,
   // NOTE: below, I assume u_cfd is not needed anymore so I can use it for work
   mda_->csm_.Calc_dSdp_Product(wrk, u_cfd);
   v_csm += u_cfd;
+
+  // Finally, assemble v from its cfd and csm parts
+  for (int i = 0; i < 3*nnp; i++) {
+    v(i) = v_cfd(i);
+    v(3*nnp+i) = v_csm(i);
+  }
+
+  // Scale product
+  mda_->ScaleVector(v);
+#if 0
+  // TEMP: identity operator (relaxation)
+  v = u;
+#endif
+}
+
+// ======================================================================
+
+void AeroStructTransposeProduct::operator()(const InnerProdVector & u, 
+                                            InnerProdVector & v) 
+{
+  // decompose u into its cfd and csm parts, and create some work arrays
+  int nnp = mda_->num_nodes_;
+  InnerProdVector u_cfd(3*nnp, 0.0), v_cfd(3*nnp, 0.0),
+      u_csm(3*nnp, 0.0), v_csm(3*nnp, 0.0),
+      wrk(nnp, 0.0);
+  for (int i = 0; i < 3*nnp; i++) {
+    u_cfd(i) = u(i);
+    u_csm(i) = u(3*nnp+i);
+  }
+
+  // Denote the Aerostructural Jacobian-vector product by
+  //    | A^T  C^T | | u_cfd | = | v_cfd |
+  //    | B^T  D   | | u_csm |   | v_csm |
+
+  // Compute A^T*u_cfd
+  mda_->cfd_.JacobianTransposedStateProduct(u_cfd, v_cfd);
+
+  // Compute D^T*u_csm
+  mda_->csm_.Calc_dSdu_Product(u_csm, v_csm);
+
+  // Compute C^T*u_cfd = (dp/dq)^T*(dS/dp)^T*u_cfd = (dp/dq)^T*wrk
+  mda_->csm_.CalcTrans_dSdp_Product(u_cfd, wrk);
+  // NOTE: below, I assume u_cfd is not needed anymore so I can use it for work
+  mda_->cfd_.CalcDPressDQTransposedProduct(wrk, u_cfd);
+  v_cfd += u_cfd;
+
+  // Compute B^T*u_csm = (dA/du)^T*(dR/dA)^T*u_csm = (dA/du)^T*wrk
+  mda_->cfd_.JacobianTransposedAreaProduct(u_cfd, wrk);
+  // NOTE: below, I assume u_csm is not needed anymore, so I can use it for work
+  mda_->csm_.CalcTrans_dAdu_Product(wrk, u_csm);
+  v_csm += u_csm;
 
   // Finally, assemble v from its cfd and csm parts
   for (int i = 0; i < 3*nnp; i++) {

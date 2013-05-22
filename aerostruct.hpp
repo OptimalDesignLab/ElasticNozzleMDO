@@ -15,6 +15,7 @@
 
 // forward declarations
 class AeroStructProduct;
+class AeroStructTransposeProduct;
 class AeroStructPrecond;
 
 // ======================================================================
@@ -42,7 +43,22 @@ public:
 
   ~AeroStructMDA() {} ///< class destructor
 
+  /*!
+   * \brief defines a sample MDA test problem
+   */
   void InitializeTestProb();
+
+  /*!
+   * \brief sets up the CFD solver for the MDA evaluation
+   */
+  void InitializeCFD(InnerProdVector & x_coords, InnerProdVector & area);
+
+  /*!
+   * \brief sets up the CSM solver for the MDA evaluation
+   */
+  void InitializeCSM(InnerProdVector & x_coords, InnerProdVector & y_coords,
+                     InnerProdVector & BCtype, InnerProdVector & BCval,
+                     double E, double t, double w, double h);
 
   /*!
    * \brief calculate the system residual vector
@@ -71,6 +87,11 @@ public:
   int NewtonKrylov(const int & max_iter, const double & tol);
 
   /*!
+   * \brief prints out nodal displacements of the system design
+   */
+  void PrintDisplacements();
+
+  /*!
    * \brief tests the AeroStructProduct using a finite-difference approximation
    *
    * \pre the state defined in u_ must be "reasonable"
@@ -90,6 +111,7 @@ public:
   int num_nodes_, order_;
 
   friend class AeroStructProduct;
+  friend class AeroStructTransposeProduct;
   friend class AeroStructPrecond;
 };
 
@@ -106,6 +128,26 @@ public:
   AeroStructProduct(AeroStructMDA * mda) { mda_ = mda; }
 
   ~AeroStructProduct() {}
+  
+  void operator()(const InnerProdVector & u, InnerProdVector & v);
+  
+private:
+  AeroStructMDA * mda_;
+}; 
+
+// ======================================================================
+
+/*!
+ * \class AeroStructTransposeProduct
+ * \brief specialization of matrix-vector product for AeroStruct
+ */
+class AeroStructTransposeProduct:
+    public kona::MatrixVectorProduct<InnerProdVector> {
+public:
+
+  AeroStructTransposeProduct(AeroStructMDA * mda) { mda_ = mda; }
+
+  ~AeroStructTransposeProduct() {}
   
   void operator()(const InnerProdVector & u, InnerProdVector & v);
   
