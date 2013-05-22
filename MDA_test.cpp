@@ -13,7 +13,7 @@ using namespace std;
 
 int main() {
 
-  int nnp = 41; //81;
+  int nnp = 21; //81;
 	int order = 3;
 	AeroStructMDA asmda(nnp, order);
 

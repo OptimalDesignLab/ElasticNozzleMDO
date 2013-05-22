@@ -39,20 +39,21 @@ void AeroStructMDA::InitializeTestProb()
 {
   // set material properties for CSM
   double E = 10000000;   // Young's modulus
-  double w = 1;           // fixed width of nozzle
-  double t = 0.07;        // fixed beam element thickness
+  double w = 1.0;           // fixed width of nozzle
+  double t = 0.01;        // fixed beam element thickness
   double h = 2;           // max height of the nozzle
   csm_.set_material(E, t, w, h);
 
   // start defining the nozzle
-  double length = 10.0;
+  double length = 1.0;
   InnerProdVector x_coord(num_nodes_, 0.0);
   InnerProdVector y_coord(num_nodes_, 0.0);
   InnerProdVector area(num_nodes_, 0.0);
   for (int i = 0; i < num_nodes_; i++) {
     // evenly spaced nodes along the x
     x_coord(i) = i*length/(num_nodes_-1);
-    y_coord(i) = 0.0025*(10 - x_coord(i))*x_coord(i);
+    //y_coord(i) = 0.0025*(10 - x_coord(i))*x_coord(i);
+    y_coord(i) = 0.25*(1.0 - x_coord(i))*x_coord(i);
     area(i) = w*(h - 2*y_coord(i));
   }
 
@@ -152,15 +153,25 @@ void AeroStructMDA::CalcResidual()
   // Retreive the discipline residuals
   const InnerProdVector & v_cfd = cfd_.get_res();
   const InnerProdVector & v_csm = csm_.get_res();
-
-  scale_cfd_ = 1.0/v_cfd.Norm2();
-  scale_csm_ = 1.0/v_csm.Norm2();
   
   // Merge the disciplines into the system residual
   for (int i=0; i<3*num_nodes_; i++) {
     v_(i) = v_cfd(i);
     v_(3*num_nodes_+i) = v_csm(i);
   }
+}
+
+// ======================================================================
+
+void AeroStructMDA::CalcRowScaling(const InnerProdVector & res) {
+  scale_cfd_ = 0.0;
+  scale_csm_ = 0.0;
+  for (int i=0; i<3*num_nodes_; i++) {
+    scale_cfd_ += res(i)*res(i);
+    scale_csm_ += res(3*num_nodes_+i)*res(3*num_nodes_+i);
+  }
+  scale_cfd_ = 1.0/sqrt(scale_cfd_);
+  scale_csm_ = 1.0/sqrt(scale_csm_);
 }
 
 // ======================================================================
@@ -201,8 +212,7 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
     }
 
     // scale residual
-    //scale_cfd_ = 1.00;
-    //scale_csm_ = 1.00;
+    CalcRowScaling(b);
     ScaleVector(b);
     
     // Update CFD preconditioner
@@ -247,6 +257,10 @@ void AeroStructMDA::TestMDAProduct()
   for (int i = 0; i < 6*num_nodes_; i++)
     u(i) = dist(gen);
 
+  // set the row scaling
+  scale_cfd_ = 1.0;
+  scale_csm_ = 1.0;
+  
   u_save = u_;  // save the state for later
   
   kona::MatrixVectorProduct<InnerProdVector>* 
@@ -268,16 +282,19 @@ void AeroStructMDA::TestMDAProduct()
   // take difference between two products and store in q_ for output
   u.EqualsAXPlusBY(1.0, v, -1.0, v_fd);
 
+#if 0
+  // uncomment to print error at each variable
   cout << "TestMDAProduct: product elements corresponding to cfd:" << endl;
   for (int i = 0; i < 3*num_nodes_; i++)
     cout << "delta v(" << i << ") = " << u(i) << endl;
   cout << "TestMDAProduct: product elements corresponding to csm:" << endl;
   for (int i = 3*num_nodes_; i < 6*num_nodes_; i++) {
-    // cout << "v(" << i << ")    = " << v(i) << endl;
-    // cout << "v_fd(" << i << ") = " << v_fd(i) << endl;
+    //cout << "v(" << i << ")    = " << v(i) << endl;
+    //cout << "v_fd(" << i << ") = " << v_fd(i) << endl;
     cout << "delta v(" << i << ") = " << u(i) << endl;
   }
-    
+#endif
+  
   double L2_error = u.Norm2();
   cout << "TestMDAProduct: "
        << "L2 error between analytical and FD Jacobian-vector product: "

@@ -51,6 +51,12 @@ public:
   void CalcResidual();
 
   /*!
+   * \brief sets the equation scaling based on the residual res
+   * \param[in] res - nonlinear MDA equation residual
+   */
+  void CalcRowScaling(const InnerProdVector & res);
+  
+  /*!
    * \brief applies scaling to the cfd and csm components of u
    * \param[in,out] u - vector to be scaled
    */
