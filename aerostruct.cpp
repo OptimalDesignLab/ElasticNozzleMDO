@@ -38,7 +38,7 @@ static const double kRGas = 287.0;
 void AeroStructMDA::InitializeTestProb()
 {
   // set material properties for CSM
-  double E = 10000000;   // Young's modulus
+  double E = 75000;   // Young's modulus
   double w = 1.0;           // fixed width of nozzle
   double t = 0.01;        // fixed beam element thickness
   double h = 2;           // max height of the nozzle
@@ -82,6 +82,85 @@ void AeroStructMDA::InitializeTestProb()
   InitializeCSM(x_coord, y_coord, BCtype, BCval, E, t, w, h);
 
   csm_.InspectMesh();
+}
+
+// ======================================================================
+
+void AeroStructMDA::TempTest() {
+
+  CalcResidual();
+  
+  int fine_nodes = 2*(num_nodes_-1) + 1;
+  InnerProdVector x_coord(num_nodes_, 0.0), x_fine(fine_nodes, 0.0);
+  InnerProdVector y_coord(num_nodes_, 0.0), y_fine(fine_nodes, 0.0);  
+  InnerProdVector area(num_nodes_, 0.0), area_fine(fine_nodes, 0.0);
+  InnerProdVector press(num_nodes_, 0.0), press_fine(fine_nodes, 0.0);
+  
+  // interpolate area, x, and y from csm, and press from cfd
+  csm_.CalcArea();
+  area = csm_.get_area();
+  x_coord = csm_.get_x();
+  y_coord = csm_.get_y();
+  press = cfd_.get_press();
+  for (int i = 0; i < num_nodes_; i++) {
+    area_fine(2*i) = area(i);
+    x_fine(2*i) = x_coord(i);
+    y_fine(2*i) = y_coord(i);
+    press_fine(2*i) = press(i);
+    if (i < num_nodes_-1) {
+      area_fine(2*i+1) = 0.5*(area(i) + area(i+1));
+      x_fine(2*i+1) = 0.5*(x_coord(i) + x_coord(i+1));
+      y_fine(2*i+1) = 0.5*(y_coord(i) + y_coord(i+1));
+      press_fine(2*i+1) = 0.5*(press(i) + press(i+1));
+    }
+  }
+
+  // rerun cfd on refined grid and interpolated area
+  cfd_.ResizeGrid(x_fine);
+  num_nodes_ = fine_nodes;
+  InitializeCFD(x_fine, area_fine);  
+  //cfd_.set_area(area_fine);
+  cfd_.NewtonKrylov(30, 1e-8);
+  cfd_.WriteTecplot(1.0, 1.0, "refined_quasi1d.dat");
+
+  // create a CSM and run with interpolated pressure
+  LECSM csm_fine(fine_nodes);
+  double E = 75000;   // Young's modulus
+  double w = 1.0;           // fixed width of nozzle
+  double t = 0.01;        // fixed beam element thickness
+  double h = 2;           // max height of the nozzle
+
+  // determine the nodal structural boundary conditions
+  InnerProdVector BCtype(3*fine_nodes, 0.0);
+  InnerProdVector BCval(3*fine_nodes, 0.0);
+  for (int i=0; i<fine_nodes; i++) {
+    BCtype(3*i) = 0;
+    BCtype(3*i+1) = -1;
+    BCtype(3*i+2) = -1;
+    BCval(3*i) = 0;
+    BCval(3*i+1) = 0;
+    BCval(3*i+2) = 0;
+  }
+  BCtype(0) = 0;
+  BCtype(1) = 0;
+  BCtype(2) = -1;
+  BCtype(3*fine_nodes-3) = 0;
+  BCtype(3*fine_nodes-2) = 0;
+  BCtype(3*fine_nodes-1) = -1;
+
+  // set material properties
+  csm_fine.set_material(E, t, w, h);
+  // create the CSM mesh
+  csm_fine.GenerateMesh(x_fine, y_fine);
+  // set the nodal degrees of freedom
+  csm_fine.SetBoundaryConds(BCtype, BCval);
+
+  csm_fine.set_press(press_fine);
+  csm_fine.Solve();
+  csm_fine.CalcArea();
+  
+  cfd_.set_area(csm_fine.get_area());
+  cfd_.WriteTecplot(1.0, 1.0, "refined_csm_area.dat");
 }
 
 // ======================================================================
@@ -218,6 +297,11 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
   string filename = "aero_struct_krylov.dat";
   ofstream fout(filename.c_str());
 
+#if 0
+  cfd_.NewtonKrylov(max_iter, tol);
+  cfd_.WriteTecplot(1.0, 1.0, "undeformed_flow.dat");
+#endif
+  
   int iter = 0;
   int precond_calls = 0;
   double norm0;
@@ -402,6 +486,7 @@ void AeroStructProduct::operator()(const InnerProdVector & u,
 void AeroStructTransposeProduct::operator()(const InnerProdVector & u, 
                                             InnerProdVector & v) 
 {
+#if 0
   // decompose u into its cfd and csm parts, and create some work arrays
   int nnp = mda_->num_nodes_;
   InnerProdVector u_cfd(3*nnp, 0.0), v_cfd(3*nnp, 0.0),
@@ -445,6 +530,7 @@ void AeroStructTransposeProduct::operator()(const InnerProdVector & u,
 #if 0
   // TEMP: identity operator (relaxation)
   v = u;
+#endif
 #endif
 }
 

@@ -35,7 +35,13 @@ int main() {
 	double rho_ref = 1.14091202011454;
 	double p = 9.753431315656936E4;
 	double a_ref = sqrt(kGamma*p/rho_ref);
+        rho_ref = 1.0;
+        a_ref = 1.0;
 	asmda.GetTecplot(rho_ref, a_ref);
+
+        asmda.TempTest();
+        
+
 #endif
 #if 0
 	printf("Validating MDA product...\n");

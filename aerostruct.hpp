@@ -48,6 +48,8 @@ public:
    */
   void InitializeTestProb();
 
+  void TempTest();
+  
   /*!
    * \brief sets up the CFD solver for the MDA evaluation
    */
