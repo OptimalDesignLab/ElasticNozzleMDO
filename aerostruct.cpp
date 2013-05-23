@@ -350,7 +350,7 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
     if (iter == 0) norm0 = norm;
     cout << "iter = " << iter
          << ": L2 norm of residual = " << norm << endl;
-    if ( (norm < tol) || (norm < 1.e-14) ) {
+    if ( (norm < tol*norm0) || (norm < 1.e-14) ) {
       cout << "Solver: NewtonKrylov converged!" << endl;
       return precond_calls;
     }
@@ -598,16 +598,16 @@ void AeroStructPrecond::operator()(InnerProdVector & u, InnerProdVector & v)
 
   // Compute v_csm = u_csm - C*v_cfd
   mda_->cfd_.CalcDPressDQProduct(v_cfd, wrk);
+  wrk *= mda_->p_ref_;
   mda_->csm_.Calc_dSdp_Product(wrk, u_cfd);
   u_csm -= u_cfd;
   mda_->csm_.Precondition(u_csm, v_csm);
-#endif
-  
+#else
   //mda_->csm_.Precondition(u_csm, v_csm);
   v_csm = u_csm;
   
   mda_->cfd_.Precondition(u_cfd, v_cfd);
-  
+#endif
   // merge the preconditioners and pass it up
   for (int i = 0; i < 3*nnp; i++) {
     v(i) = v_cfd(i);
