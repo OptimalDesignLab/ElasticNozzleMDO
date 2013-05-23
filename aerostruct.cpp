@@ -88,16 +88,38 @@ void AeroStructMDA::InitializeTestProb()
 
 void AeroStructMDA::TempTest() {
 
-  CalcResidual();
+  //CalcResidual();
   
   int fine_nodes = 2*(num_nodes_-1) + 1;
   InnerProdVector x_coord(num_nodes_, 0.0), x_fine(fine_nodes, 0.0);
   InnerProdVector y_coord(num_nodes_, 0.0), y_fine(fine_nodes, 0.0);  
   InnerProdVector area(num_nodes_, 0.0), area_fine(fine_nodes, 0.0);
   InnerProdVector press(num_nodes_, 0.0), press_fine(fine_nodes, 0.0);
-  
+
+#if 0
+  InnerProdVector u_csm(3*num_nodes_, 0.0);
+  for (int i = 0; i < 3*num_nodes_; i++) {
+    u_csm(i) = 0.0;
+  }
+  double length = 1.0;
+  for (int i = 0; i < num_nodes_; i++) {
+    // evenly spaced nodes along the x
+    x_coord(i) = i*length/(num_nodes_-1);
+    y_coord(i) = 0.25*(1.0 - x_coord(i))*x_coord(i);    
+  }
+
+  csm_.set_u(u_csm);
+  csm_.set_press(cfd_.get_press()); // set the pressures from CFD
+  csm_.CalcResidual();
+  csm_.Solve();
+  csm_.set_u(csm_.get_u());
+  csm_.CalcCoordsAndArea();
+  cfd_.set_area(csm_.get_area());
+  cfd_.WriteTecplot(1.0, 1.0, "csm_area.dat");
+#endif
+
   // interpolate area, x, and y from csm, and press from cfd
-  csm_.CalcArea();
+  csm_.CalcCoordsAndArea();
   area = csm_.get_area();
   x_coord = csm_.get_x();
   y_coord = csm_.get_y();
@@ -105,12 +127,10 @@ void AeroStructMDA::TempTest() {
   for (int i = 0; i < num_nodes_; i++) {
     area_fine(2*i) = area(i);
     x_fine(2*i) = x_coord(i);
-    y_fine(2*i) = y_coord(i);
     press_fine(2*i) = press(i);
     if (i < num_nodes_-1) {
       area_fine(2*i+1) = 0.5*(area(i) + area(i+1));
       x_fine(2*i+1) = 0.5*(x_coord(i) + x_coord(i+1));
-      y_fine(2*i+1) = 0.5*(y_coord(i) + y_coord(i+1));
       press_fine(2*i+1) = 0.5*(press(i) + press(i+1));
     }
   }
@@ -118,7 +138,7 @@ void AeroStructMDA::TempTest() {
   // rerun cfd on refined grid and interpolated area
   cfd_.ResizeGrid(x_fine);
   num_nodes_ = fine_nodes;
-  InitializeCFD(x_fine, area_fine);  
+  InitializeCFD(x_fine, area_fine);
   //cfd_.set_area(area_fine);
   cfd_.NewtonKrylov(30, 1e-8);
   cfd_.WriteTecplot(1.0, 1.0, "refined_quasi1d.dat");
@@ -148,6 +168,12 @@ void AeroStructMDA::TempTest() {
   BCtype(3*fine_nodes-2) = 0;
   BCtype(3*fine_nodes-1) = -1;
 
+  double length = 1.0;
+  for (int i = 0; i < fine_nodes; i++) {
+    x_fine(i) = i*length/(fine_nodes-1);
+    y_fine(i) = 0.25*(1.0 - x_fine(i))*x_fine(i);
+  }
+  
   // set material properties
   csm_fine.set_material(E, t, w, h);
   // create the CSM mesh
@@ -155,12 +181,15 @@ void AeroStructMDA::TempTest() {
   // set the nodal degrees of freedom
   csm_fine.SetBoundaryConds(BCtype, BCval);
 
-  csm_fine.set_press(press_fine);
+  csm_fine.set_press(press_fine); // alternatively use cfd_.get_press()
   csm_fine.Solve();
-  csm_fine.CalcArea();
+  //csm_fine.set_u(csm_fine.get_u());  // this is redundant now (for this test)
+  csm_fine.CalcCoordsAndArea();
   
   cfd_.set_area(csm_fine.get_area());
   cfd_.WriteTecplot(1.0, 1.0, "refined_csm_area.dat");
+
+
 }
 
 // ======================================================================
@@ -229,8 +258,8 @@ void AeroStructMDA::InitializeCSM(InnerProdVector & x_coord, InnerProdVector & y
 void AeroStructMDA::CalcResidual()
 { 
   // Reset CSM coordinates back to the original geometry
-  csm_.ResetCoords();
-
+  //csm_.ResetCoords();
+  
   // Split system u into CSM and CFD vectors  
   InnerProdVector u_cfd(3*num_nodes_, 0.0), u_csm(3*num_nodes_, 0.0);
   for (int i = 0; i < 3*num_nodes_; i++) {
@@ -243,7 +272,7 @@ void AeroStructMDA::CalcResidual()
   csm_.set_u(u_csm);                 // set the nodal displacements
 
   // CFD Operations
-  csm_.CalcArea();                  // calculate the area
+  csm_.CalcCoordsAndArea();         // calculate the displaced x,y and area  
   cfd_.set_area(csm_.get_area());   // set the area
   cfd_.set_x_coord(csm_.get_x());   // set the nodal x coordinates
   cfd_.CalcResidual();              // calculate the CFD residual
@@ -252,6 +281,8 @@ void AeroStructMDA::CalcResidual()
   csm_.set_press(cfd_.get_press()); // set the pressures from CFD
   csm_.CalcResidual();               // calculate the CSM residual
 
+  //csm_.ResetCoords();
+  
   // Retreive the discipline residuals
   const InnerProdVector & v_cfd = cfd_.get_res();
   const InnerProdVector & v_csm = csm_.get_res();
@@ -321,7 +352,7 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
 #if 0
     // reset CSM grid to original geometry before peforming JacobianVectorProduct
     csm_.ResetCoords();
-    csm_.CalcArea();
+    csm_.CalcCoordsAndArea();
     cfd_.set_area(csm_.get_area());
     cfd_.set_x_coord(csm_.get_x());
 #endif
@@ -349,7 +380,8 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
 
     // update the individual discipline states
     double damp = 1.00;
-    u_ += damp*du;
+    u_ += damp*du;    
+
     precond_calls += krylov_precond_calls;
     iter++;
   }

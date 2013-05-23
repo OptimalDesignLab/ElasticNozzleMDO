@@ -13,7 +13,7 @@ using namespace std;
 
 int main() {
 
-  int nnp = 21; //81;
+  int nnp = 21; //41; //81;
 	int order = 3;
 	AeroStructMDA asmda(nnp, order);
 
@@ -29,7 +29,7 @@ int main() {
 
         cout << "Number of MDA preconditioner calls = " << precond_calls << endl;
 
-  asmda.PrintDisplacements();
+        //asmda.PrintDisplacements();
         
 	printf("Generating tecplot...\n");
 	double rho_ref = 1.14091202011454;
