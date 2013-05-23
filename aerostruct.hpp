@@ -111,6 +111,7 @@ public:
   InnerProdVector u_;
   InnerProdVector v_;
   int num_nodes_, order_;
+  double p_ref_; ///< reference pressure for dimensionalization
 
   friend class AeroStructProduct;
   friend class AeroStructTransposeProduct;

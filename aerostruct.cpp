@@ -38,7 +38,7 @@ static const double kRGas = 287.0;
 void AeroStructMDA::InitializeTestProb()
 {
   // set material properties for CSM
-  double E = 75000;   // Young's modulus
+  double E = 100000000;   // Young's modulus
   double w = 1.0;           // fixed width of nozzle
   double t = 0.01;        // fixed beam element thickness
   double h = 2;           // max height of the nozzle
@@ -64,7 +64,7 @@ void AeroStructMDA::InitializeTestProb()
   InnerProdVector BCtype(3*num_nodes_, 0.0);
   InnerProdVector BCval(3*num_nodes_, 0.0);
   for (int i=0; i<num_nodes_; i++) {
-    BCtype(3*i) = 0;
+    BCtype(3*i) = 0; //-1;
     BCtype(3*i+1) = -1;
     BCtype(3*i+2) = -1;
     BCval(3*i) = 0;
@@ -124,14 +124,15 @@ void AeroStructMDA::TempTest() {
   x_coord = csm_.get_x();
   y_coord = csm_.get_y();
   press = cfd_.get_press();
+  press *= p_ref_;
   for (int i = 0; i < num_nodes_; i++) {
     area_fine(2*i) = area(i);
     x_fine(2*i) = x_coord(i);
-    press_fine(2*i) = press(i);
+    press_fine(2*i) = press(i) - kPressStag;
     if (i < num_nodes_-1) {
       area_fine(2*i+1) = 0.5*(area(i) + area(i+1));
       x_fine(2*i+1) = 0.5*(x_coord(i) + x_coord(i+1));
-      press_fine(2*i+1) = 0.5*(press(i) + press(i+1));
+      press_fine(2*i+1) = 0.5*(press(i) + press(i+1)) - kPressStag;
     }
   }
 
@@ -145,7 +146,7 @@ void AeroStructMDA::TempTest() {
 
   // create a CSM and run with interpolated pressure
   LECSM csm_fine(fine_nodes);
-  double E = 75000;   // Young's modulus
+  double E = 100000000;   // Young's modulus
   double w = 1.0;           // fixed width of nozzle
   double t = 0.01;        // fixed beam element thickness
   double h = 2;           // max height of the nozzle
@@ -181,7 +182,7 @@ void AeroStructMDA::TempTest() {
   // set the nodal degrees of freedom
   csm_fine.SetBoundaryConds(BCtype, BCval);
 
-  csm_fine.set_press(press_fine); // alternatively use cfd_.get_press()
+  csm_fine.set_press(press_fine); // alternatively use cfd_.get_press() 
   csm_fine.Solve();
   //csm_fine.set_u(csm_fine.get_u());  // this is redundant now (for this test)
   csm_fine.CalcCoordsAndArea();
@@ -208,6 +209,7 @@ void AeroStructMDA::InitializeCFD(InnerProdVector & x_coord, InnerProdVector & a
                 kTempStag, kPressStag, rho, rho_u, e);
   double rho_ref = rho;
   double press = (kGamma - 1.0)*(e - 0.5*rho_u*rho_u/rho);
+  p_ref_ = press;
   double a_ref = sqrt(kGamma*press/rho_ref);
   double rho_L = 1.0;
   double rho_u_L = rho_u/(a_ref*rho_ref);
@@ -277,8 +279,12 @@ void AeroStructMDA::CalcResidual()
   cfd_.set_x_coord(csm_.get_x());   // set the nodal x coordinates
   cfd_.CalcResidual();              // calculate the CFD residual
 
-  // CSM Operations  
-  csm_.set_press(cfd_.get_press()); // set the pressures from CFD
+  // CSM Operations
+  InnerProdVector press(num_nodes_, 0.0), press_stag(num_nodes_, kPressStag);
+  press = cfd_.get_press();
+  press *= p_ref_;
+  press -= press_stag;  // because pressure on other side of nozzle
+  csm_.set_press(press);
   csm_.CalcResidual();               // calculate the CSM residual
 
   //csm_.ResetCoords();
@@ -495,6 +501,7 @@ void AeroStructProduct::operator()(const InnerProdVector & u,
 
   // Compute C*u_cfd = (dS/dp)*(dp/dq)*u_cfd = (dS/dp)*wrk
   mda_->cfd_.CalcDPressDQProduct(u_cfd, wrk);
+  wrk *= mda_->p_ref_;
   // NOTE: below, I assume u_cfd is not needed anymore so I can use it for work
   mda_->csm_.Calc_dSdp_Product(wrk, u_cfd);
   v_csm += u_cfd;
@@ -543,6 +550,7 @@ void AeroStructTransposeProduct::operator()(const InnerProdVector & u,
   mda_->csm_.CalcTrans_dSdp_Product(u_cfd, wrk);
   // NOTE: below, I assume u_cfd is not needed anymore so I can use it for work
   mda_->cfd_.CalcDPressDQTransposedProduct(wrk, u_cfd);
+  u_cfd *= p_ref_;
   v_cfd += u_cfd;
 
   // Compute B^T*u_csm = (dA/du)^T*(dR/dA)^T*u_csm = (dA/du)^T*wrk
