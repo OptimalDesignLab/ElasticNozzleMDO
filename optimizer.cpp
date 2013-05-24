@@ -48,6 +48,8 @@ static const int order = 3;
 static AeroStructMDA solver(nodes, order);
 static BsplineNozzle nozzle_shape;
 
+#if 0
+
 // forward declerations
 int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
 	     double *dwrk);
@@ -399,4 +401,5 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
 	    break;
 	  }
 	}
-}	
+}
+#endif
