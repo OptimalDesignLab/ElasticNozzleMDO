@@ -17,21 +17,18 @@ directory and Kona root directory respectively. If dependencies are installed
 properly, the test solver MDA_test.bin should compile.
 _________________________________________________________________________________
 DEPENDENCIES:
-+ Boost
+
++ Boost (http://www.boost.org/)
 + Kona (https://bitbucket.org/jehicken/kona)
 _________________________________________________________________________________
-DESIGN NOTES:
+CURRENT ISSUES:
 
-+ Bspline::EvalAtPoints will give a vector of Y coordinates
-that correspond to a vector of X coordinates on the Bspline.
-Use this to create the mesh.
++ Optimization routines still need validation.
 
-+ Use Bspline::FitCurve to generate analytical Bspline from
-a set of X and Y coordinates. The optimizer will control only
-the Bspline, not the mesh coordinates.
-_________________________________________________________________________________
-MAJOR ISSUES:
++ Objective function and its derivatives are incomplete.
 
-+ System residual is returning NaN. CSM residual has been independently verified.
-CFD residual might be the problem.
++ userFunc required by KonaOptimize needs to be put together. Most of the pieces
+are coded and ready to be implemented
+
++ BsplineNozzle needs to be created.
 
