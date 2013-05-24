@@ -9,6 +9,7 @@
 
 #include <math.h>
 
+#include "./quasi_1d_euler/nozzle.hpp"
 #include "./quasi_1d_euler/inner_prod_vector.hpp"
 #include "./quasi_1d_euler/quasi_1d_euler.hpp"
 #include "./linear_elastic_csm/lecsm.hpp"
@@ -45,9 +46,11 @@ public:
 
   /*!
    * \brief alternative class constructor for geometries defined by a Bspline
-   * \param[in] euler_solver - a Quasi1DEuler solver (defines product)
+   * \param[in] num_nodes - number of nodes
+   * \param[in] order - order of accuracy of CFD solver
+   * \param[in] nozzle - BsplineNozzle the defines the area
    */
-  AeroStructMDA(int num_nodes, int order, BsplineNozzle & nozzle):
+  AeroStructMDA(int num_nodes, int order, Nozzle & nozzle):
       u_(6*num_nodes,0.0), 
       v_(6*num_nodes,0.0),
       cfd_(num_nodes, order),
@@ -56,11 +59,21 @@ public:
     order_ = order;
     scale_cfd_ = 1.0;
     scale_csm_ = 1.0;
-    nozzle_ = nozzle;
+    nozzle_ = &nozzle;
   }
 
   ~AeroStructMDA() {} ///< class destructor
 
+  /*!
+   * \brief extract the MDA solution vector
+   */
+  const InnerProdVector & get_u() const { return u_; }
+  
+  /*!
+   * \brief define the MDA solution vector
+   */
+  void set_u(const InnerProdVector & u_new) { u_ = u_new; }
+  
   /*!
    * \brief defines a sample Bspline-free MDA test problem
    */
@@ -110,11 +123,28 @@ public:
   int NewtonKrylov(const int & max_iter, const double & tol);
 
   /*!
+   * \brief solves for the coupled adjoint variables using a Krylov solver
+   * \param[in] max_iter - maximum number of iterations permitted
+   * \param[in] tol - tolerance with which to solve the system
+   * \param[in] dJdu - the rhs of the adjoint linear system
+   * \returns total number of preconditioner calls
+   */
+  int SolveAdjoint(const int & max_iter, const double & tol,
+                   const InnerProdVector & dJdu,
+                   InnerProdVector & psi);
+  
+  /*!
    * \brief tests the AeroStructProduct using a finite-difference approximation
    * \pre the state defined in u_ must be "reasonable"
    */
   void TestMDAProduct();
 
+  /*!
+   * \brief tests the AeroStructTransposeProduct
+   * \pre the state defined in u_ must be "reasonable"
+   */
+  void TestMDATransposedProduct();
+  
   /*!
    * \brief prints out nodal displacements of the system design
    */
@@ -174,7 +204,7 @@ public:
 // ======================================================================
 
  private:
-  BsplineNozzle & nozzle_; ///< used to define problem and access Nozzle routines
+  Nozzle* nozzle_; ///< used to define problem and access Nozzle routines
   Quasi1DEuler cfd_; ///< used to access quasi_1d_euler matvec routines
   LECSM csm_; ///< used to access linear_elastic_csm routines
   double scale_cfd_; ///< used to scale linearized cfd equations

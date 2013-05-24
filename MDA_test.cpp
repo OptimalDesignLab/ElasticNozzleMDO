@@ -39,14 +39,24 @@ int main() {
         a_ref = 1.0;
 	asmda.GetTecplot(rho_ref, a_ref);
 
-        asmda.TempTest();
+        //asmda.GridTest();
         
-
 #endif
+        
 #if 0
 	printf("Validating MDA product...\n");
 	asmda.TestMDAProduct();
+        asmda.TestMDATransposedProduct();
 #endif
-        
+
+#if 1
+        printf("Testing MDA adjoint solver...\n");
+        InnerProdVector dJdu(6*nnp, 1.0), psi(6*nnp, 0.0);
+        asmda.SolveAdjoint(1000, 1e-8, dJdu, psi);
+
+        // for visualization
+        asmda.set_u(psi);        
+#endif
+            
 	return 0;
 }
