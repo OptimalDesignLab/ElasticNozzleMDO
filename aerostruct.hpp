@@ -17,6 +17,7 @@
 class AeroStructProduct;
 class AeroStructTransposeProduct;
 class AeroStructPrecond;
+class AeroStructTransposePrecond;
 
 // ======================================================================
 /*!
@@ -116,6 +117,7 @@ public:
   friend class AeroStructProduct;
   friend class AeroStructTransposeProduct;
   friend class AeroStructPrecond;
+  friend class AeroStructTransposePrecond;
 };
 
 // ======================================================================
@@ -171,6 +173,26 @@ public:
   AeroStructPrecond(AeroStructMDA * mda) { mda_ = mda; }
 
   ~AeroStructPrecond() {}
+
+  void operator()(InnerProdVector & u, InnerProdVector & v);
+
+private:
+  AeroStructMDA * mda_;
+}; 
+
+// ======================================================================
+
+/*!
+ * \class AeroStructTransposePrecond
+ * \brief specialization of matrix-vector product for AeroStruct
+ */
+class AeroStructTransposePrecond:
+    public kona::Preconditioner<InnerProdVector> {
+public:
+
+  AeroStructTransposePrecond(AeroStructMDA * mda) { mda_ = mda; }
+
+  ~AeroStructTransposePrecond() {}
 
   void operator()(InnerProdVector & u, InnerProdVector & v);
 

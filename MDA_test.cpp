@@ -39,7 +39,7 @@ int main() {
         a_ref = 1.0;
 	asmda.GetTecplot(rho_ref, a_ref);
 
-        //asmda.TempTest();
+        asmda.TempTest();
         
 
 #endif

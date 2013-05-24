@@ -9,11 +9,11 @@ axis_lw = 1.0 # line width used for axis box, legend, and major ticks
 label_fs = 10 # axis labels' font size
 
 # get data to plot
-data = open('./quasi1d.dat', 'r')
+#data = open('./quasi1d.dat', 'r')
 #data = open('./refined_quasi1d.dat', 'r')
 #data = open('./undeformed_flow.dat', 'r')
 #data = open('./csm_area.dat', 'r')
-#data = open('./refined_csm_area.dat', 'r')
+data = open('./refined_csm_area.dat', 'r')
 [x, A, rho, rhou, e, p, p_targ, u, Mach, Mach_exact] = \
   np.loadtxt(data, skiprows=3, unpack=True)
 

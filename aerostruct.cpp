@@ -525,7 +525,6 @@ void AeroStructProduct::operator()(const InnerProdVector & u,
 void AeroStructTransposeProduct::operator()(const InnerProdVector & u, 
                                             InnerProdVector & v) 
 {
-#if 0
   // decompose u into its cfd and csm parts, and create some work arrays
   int nnp = mda_->num_nodes_;
   InnerProdVector u_cfd(3*nnp, 0.0), v_cfd(3*nnp, 0.0),
@@ -550,7 +549,7 @@ void AeroStructTransposeProduct::operator()(const InnerProdVector & u,
   mda_->csm_.CalcTrans_dSdp_Product(u_cfd, wrk);
   // NOTE: below, I assume u_cfd is not needed anymore so I can use it for work
   mda_->cfd_.CalcDPressDQTransposedProduct(wrk, u_cfd);
-  u_cfd *= p_ref_;
+  u_cfd *= mda_->p_ref_;
   v_cfd += u_cfd;
 
   // Compute B^T*u_csm = (dA/du)^T*(dR/dA)^T*u_csm = (dA/du)^T*wrk
@@ -570,7 +569,6 @@ void AeroStructTransposeProduct::operator()(const InnerProdVector & u,
 #if 0
   // TEMP: identity operator (relaxation)
   v = u;
-#endif
 #endif
 }
 
@@ -607,6 +605,51 @@ void AeroStructPrecond::operator()(InnerProdVector & u, InnerProdVector & v)
   v_csm = u_csm;
   
   mda_->cfd_.Precondition(u_cfd, v_cfd);
+#endif
+  // merge the preconditioners and pass it up
+  for (int i = 0; i < 3*nnp; i++) {
+    v(i) = v_cfd(i);
+    v(3*nnp+i) = v_csm(i);
+  }
+#if 0
+  // TEMP: identity preconditioner
+  v = u;
+#endif
+}
+
+// ======================================================================
+
+void AeroStructTransposePrecond::operator()(InnerProdVector & u, InnerProdVector & v)
+{
+  // decompose u into its cfd and csm parts, and create some work arrays
+  int nnp = mda_->num_nodes_;
+  InnerProdVector u_cfd(3*nnp, 0.0), u_csm(3*nnp, 0.0), wrk(nnp, 0.0),
+      v_cfd(3*nnp, 0.0), v_csm(3*nnp, 0.0);
+  for (int i = 0; i < 3*nnp; i++) {
+    u_cfd(i) = u(i);
+    u_csm(i) = u(3*nnp+i);
+  }
+
+#if 0
+  // Compute v_cfd = M^{-1}(u_cfd - B*u_csm)
+  mda_->csm_.Calc_dAdu_Product(v_csm, wrk);
+  mda_->cfd_.JacobianAreaProduct(wrk, v_cfd);
+  u_cfd.EqualsAXPlusBY(1.0, u_cfd, -1.0, v_cfd);
+  
+  // inherit the preconditioner calculated at every iteration for the CFD  
+  mda_->cfd_.Precondition(u_cfd, v_cfd);
+
+  // Compute v_csm = u_csm - C*v_cfd
+  mda_->cfd_.CalcDPressDQProduct(v_cfd, wrk);
+  wrk *= mda_->p_ref_;
+  mda_->csm_.Calc_dSdp_Product(wrk, u_cfd);
+  u_csm -= u_cfd;
+  mda_->csm_.Precondition(u_csm, v_csm);
+#else
+  //mda_->csm_.Precondition(u_csm, v_csm);
+  v_csm = u_csm;
+  
+  mda_->cfd_.PreconditionTransposed(u_cfd, v_cfd);
 #endif
   // merge the preconditioners and pass it up
   for (int i = 0; i < 3*nnp; i++) {
