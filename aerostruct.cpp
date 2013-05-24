@@ -86,7 +86,7 @@ void AeroStructMDA::InitializeTestProb()
 
 // ======================================================================
 
-void AeroStructMDA::TempTest() {
+void AeroStructMDA::GridTest() {
 
   //CalcResidual();
   
@@ -466,6 +466,47 @@ void AeroStructMDA::PrintDisplacements()
     cout << "Node " << i << " :: Y-Displacement " << u_(3*(num_nodes_+i)+1) << endl;
     cout << "Node " << i << " :: rotation " << u_(3*(num_nodes_+i)+2) << endl;
   }
+}
+
+// ======================================================================
+// OPTIMIZATION ROUTINES
+// ======================================================================
+
+void AeroStructMDA::AeroStructMDA::Calc_dRdx_Product(InnerProdVector & in, InnerProdVector & out)
+{
+  InnerProdVector wrk(num_nodes_, 0.0);
+  nozzle_.AreaForwardDerivative(in, wrk);       // (dA/dx)*in
+  cfd_.JacobianAreaProduct(wrk, out);           // (dR/dA)*(dA/dx)*in
+}
+
+void AeroStructMDA::AeroStructMDA::CalcTrans_dRdx_Product(InnerProdVector & in, InnerProdVector & out)
+{
+  InnerProdVector wrk(num_nodes_, 0.0);
+  cfd_.JacobianTransposedAreaProduct(in, wrk);  // (dR/dA)^T *in
+  nozzle_.AreaReverseDerivative(wrk, out);      // (dA/dx)^T *(dR/dA)^T *in
+}
+
+void AeroStructMDA::Calc_dSdx_Product(InnerProdVector & in, InnerProdVector & out)
+{
+  InnerProdVector wrk1(num_nodes_, 0.0);
+  nozzle_.AreaForwardDerivative(in, wrk1);      // (dA/dx)*in
+  InnerProdVector wrk2(3*num_nodes_, 0.0);
+  csm_.Calc_dudA_Product(wrk1, wrk2);           // (du/dA)*(dA/dx)*in
+  csm_.Calc_dSdu_Product(wrk2, out);            // (dS/du)*(du/dA)*(dA/dx)*in
+}
+
+void AeroStructMDA::CalcTrans_dSdx_Product(InnerProdVector & in, InnerProdVector & out)
+{
+  InnerProdVector wrk1(3*num_nodes, 0.0);
+  csm_.Calc_dSdu_Product(in, wrk1);             // (dS/du)^T *in
+  InnerProdVector wrk2(num_nodes, 0.0);
+  csm_.CalcTrans_dudA_Product(wrk1, wrk2);      // (du/dA)^T *(dS/du)^T *in
+  nozzle_.AreaReverseDerivative(wrk2, out);     // (dA/dx)^T *(du/dA)^T *(dS/du)^T *in
+}
+
+void AeroStructMDA::AeroStructDesignProduct(InnerProdVector & in, InnerProdVector & out)
+{
+  
 }
 
 // ======================================================================

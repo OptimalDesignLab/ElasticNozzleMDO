@@ -20,6 +20,7 @@ class AeroStructPrecond;
 class AeroStructTransposePrecond;
 
 // ======================================================================
+
 /*!
  * \class AeroStructMDA
  * \brief defines a coupled aero-structural system
@@ -42,14 +43,33 @@ public:
     scale_csm_ = 1.0;
   }
 
+  /*!
+   * \brief alternative class constructor for geometries defined by a Bspline
+   * \param[in] euler_solver - a Quasi1DEuler solver (defines product)
+   */
+  AeroStructMDA(int num_nodes, int order, BsplineNozzle & nozzle):
+      u_(6*num_nodes,0.0), 
+      v_(6*num_nodes,0.0),
+      cfd_(num_nodes, order),
+      csm_(num_nodes) {
+    num_nodes_ = num_nodes;
+    order_ = order;
+    scale_cfd_ = 1.0;
+    scale_csm_ = 1.0;
+    nozzle_ = nozzle;
+  }
+
   ~AeroStructMDA() {} ///< class destructor
 
   /*!
-   * \brief defines a sample MDA test problem
+   * \brief defines a sample Bspline-free MDA test problem
    */
   void InitializeTestProb();
 
-  void TempTest();
+  /*!
+   * \brief tests grid-dependence on the aero-structural solution
+   */
+  void GridTest();
   
   /*!
    * \brief sets up the CFD solver for the MDA evaluation
@@ -90,28 +110,78 @@ public:
   int NewtonKrylov(const int & max_iter, const double & tol);
 
   /*!
+   * \brief tests the AeroStructProduct using a finite-difference approximation
+   * \pre the state defined in u_ must be "reasonable"
+   */
+  void TestMDAProduct();
+
+  /*!
    * \brief prints out nodal displacements of the system design
    */
   void PrintDisplacements();
 
   /*!
-   * \brief tests the AeroStructProduct using a finite-difference approximation
-   *
-   * \pre the state defined in u_ must be "reasonable"
+   * \brief generates a .dat file for the solution, to be plotted with plot_nozzle.py
+   * \pre must have solved, final nodal areas assigned to the CFD solver
    */
-  void TestMDAProduct();
-
   void GetTecplot(const double & rho_ref, const double & a_ref)
   { cfd_.WriteTecplot(rho_ref, a_ref); }
 
+// ======================================================================
+// OPTIMIZATION ROUTINES
+// ======================================================================
+
+  /*!
+   * \brief sets the number of Bspline design variables for the nozzle
+   */
+  void SetDesignVars(int num) { num_design_ = num; }
+
+  /*!
+   * \brief calculates (dR/dx)*vector product
+   * \param[in] in - multiplied vector (num_design_)
+   * \param[out] out - resultant vector (3*num_nodes_)
+   */
+  void Calc_dRdx_Product(InnerProdVector & in, InnerProdVector & out);
+
+  /*!
+   * \brief calculates (dR/dx)^T *vector product
+   * \param[in] in - multiplied vector (3*num_nodes)
+   * \param[out] out - resultant vector (num_design_)
+   */
+  void CalcTrans_dRdx_Product(InnerProdVector & in, InnerProdVector & out);
+
+  /*!
+   * \brief calculates (dS/dx)*vector product
+   * \param[in] in - multiplied vector (num_design_)
+   * \param[out] out - resultant vector (3*num_nodes_)
+   */
+  void Calc_dSdx_Product(InnerProdVector & in, InnerProdVector & out);
+
+  /*!
+   * \brief calculates (dS/dx)^T *vector product
+   * \param[in] in - multiplied vector (3*num_nodes_)
+   * \param[out] out - resultant vector (num_design_)
+   */
+  void CalcTrans_dSdx_Product(InnerProdVector & in, InnerProdVector & out);
+
+  /*!
+   * \brief calculates (dR/dx)*vector product
+   * \param[in] in - multiplied vector (num_design_)
+   * \param[out] out - resultant vector (3*num_nodes_)
+   */
+  void AeroStructDesignProduct(InnerProdVector & in, InnerProdVector & out);
+
+// ======================================================================
+
  private:
+  BsplineNozzle & nozzle_; ///< used to define problem and access Nozzle routines
   Quasi1DEuler cfd_; ///< used to access quasi_1d_euler matvec routines
   LECSM csm_; ///< used to access linear_elastic_csm routines
   double scale_cfd_; ///< used to scale linearized cfd equations
   double scale_csm_; ///< used to scale linearized csm equations
   InnerProdVector u_;
   InnerProdVector v_;
-  int num_nodes_, order_;
+  int num_nodes_, order_, num_design_;
   double p_ref_; ///< reference pressure for dimensionalization
 
   friend class AeroStructProduct;
