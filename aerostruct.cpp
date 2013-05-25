@@ -418,7 +418,7 @@ int AeroStructMDA::SolveAdjoint(const int & max_iter, const double & tol,
   int precond_calls = 0;
   kona::FGMRES(max_iter, tol, dJdu, psi, *mat_vec, *precond,
                precond_calls, fout);
-  ScaleVector(psi);
+  //ScaleVector(psi);
   fout.close();
   return precond_calls;
 }
@@ -645,7 +645,7 @@ void AeroStructTransposeProduct::operator()(const InnerProdVector & u,
 
   // Scale input
   v = u;
-  mda_->ScaleVector(v);  
+  //mda_->ScaleVector(v);  
   for (int i = 0; i < 3*nnp; i++) {
     u_cfd(i) = v(i);
     u_csm(i) = v(3*nnp+i);
@@ -679,9 +679,6 @@ void AeroStructTransposeProduct::operator()(const InnerProdVector & u,
     v(i) = v_cfd(i);
     v(3*nnp+i) = v_csm(i);
   }
-
-  // Scale product
-  //mda_->ScaleVector(v);
 #if 0
   // TEMP: identity operator (relaxation)
   v = u;
@@ -717,10 +714,11 @@ void AeroStructPrecond::operator()(InnerProdVector & u, InnerProdVector & v)
   u_csm -= u_cfd;
   mda_->csm_.Precondition(u_csm, v_csm);
 #else
-  //mda_->csm_.Precondition(u_csm, v_csm);
-  v_csm = u_csm;
-  
+
+  mda_->csm_.SolveFor(u_csm, 100, 1e-5);
+  v_csm = mda_->csm_.get_u();
   mda_->cfd_.Precondition(u_cfd, v_cfd);
+
 #endif
   // merge the preconditioners and pass it up
   for (int i = 0; i < 3*nnp; i++) {
@@ -762,10 +760,11 @@ void AeroStructTransposePrecond::operator()(InnerProdVector & u, InnerProdVector
   u_csm -= u_cfd;
   mda_->csm_.Precondition(u_csm, v_csm);
 #else
-  //mda_->csm_.Precondition(u_csm, v_csm);
-  v_csm = u_csm;
-  
+
+  mda_->csm_.SolveFor(u_csm, 100, 1e-5);
+  v_csm = mda_->csm_.get_u();
   mda_->cfd_.PreconditionTransposed(u_cfd, v_cfd);
+  
 #endif
   // merge the preconditioners and pass it up
   for (int i = 0; i < 3*nnp; i++) {

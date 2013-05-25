@@ -51,7 +51,9 @@ int main() {
 
 #if 1
         printf("Testing MDA adjoint solver...\n");
-        InnerProdVector dJdu(6*nnp, 1.0), psi(6*nnp, 0.0);
+        InnerProdVector dJdu(6*nnp, 0.0), psi(6*nnp, 0.0);
+        for (int i = 0; i < 3*nnp; i++)
+          dJdu(i) = 1.0;
         asmda.SolveAdjoint(1000, 1e-8, dJdu, psi);
 
         // for visualization
