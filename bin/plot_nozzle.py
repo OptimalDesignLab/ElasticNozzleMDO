@@ -25,13 +25,13 @@ ax = fig.add_subplot(111)
 # ms = markersize
 # mfc = markerfacecolor
 # mew = markeredgewidth
-press = ax.plot(x, p, '-ks', linewidth=1.5)
+press, = ax.plot(x, p, '-ks', linewidth=1.5)
 #press_targ = ax.plot(x, p_targ, 'ks', linewidth=0.5, ms=4.0, mfc='w', mew=1.5)
 #qn = ax.plot(ndv, qn/flow_cost, '-k^', linewidth=3.0, ms=8.0, mfc='w', mew=1.5, \
 #         color=(0.35, 0.35, 0.35))
 
 # Tweak the appeareance of the axes
-ax.axis([0.0, 1.0, 0.9*min(p), 1.1*max(p)])  # axes ranges
+ax.axis([0.0, 1.0, 0.99*min(p), 1.01*max(p)])  # axes ranges
 ax.set_position([0.14, 0.12, 0.76, 0.83]) # position relative to figure edges
 ax.set_xlabel('x', fontsize=axis_fs, weight='bold')
 ax.set_ylabel('pressure', fontsize=axis_fs, weight='bold', \
@@ -66,7 +66,7 @@ ax.xaxis.set_tick_params(which='minor', length=3, width=2.0*axis_lw/3.0)
 
 # Now add second axis if desired
 ax2 = ax.twinx()
-area = ax2.plot(x, A, '--ro', linewidth=1.0)
+area, = ax2.plot(x, A, '--ro', linewidth=1.0)
 ax2.set_ylabel('area', fontsize=axis_fs, weight='bold', \
               labelpad=11)
 #ax2.axis([0.0, 1.0, 0.9*min(A), 1.1*max(A)])
@@ -78,7 +78,7 @@ ax2.set_ylabel('area', fontsize=axis_fs, weight='bold', \
 #    tick.tick2On = False
 
 # plot and tweak the legend
-leg = ax.legend(('pressure', 'nozzle area'), loc=(0.6,0.65), numpoints=1, \
+leg = ax.legend((press, area),('pressure', 'nozzle area'), loc=(0.5,0.75), numpoints=1, \
                 borderpad=0.75, handlelength=4) # handlelength controls the width of the legend
 rect = leg.get_frame()
 rect.set_linewidth(axis_lw)

@@ -35,17 +35,8 @@ static int num_state_vec = -1;  // number of state vectors
 static vector<InnerProdVector> design;    // design vectors
 static vector<InnerProdVector> state;     // state vectors
 
-// domain parameters
-static const double length = 5.0;
-static const double height = 1.6;
-static const double width = 1.6;
-static const double x_min = 0.0;
-static const double x_max = x_min + length;
-
 // discretization parameters
-static const int nodes = 201;
 static const int num_var = 6*nodes;
-static const int order = 3;
 
 static BsplineNozzle nozzle_shape;
 static AeroStructMDA solver(nodes, order, nozzle_shape);
@@ -60,14 +51,14 @@ double MeshCoord(const double & length, const int & num_nodes,
 
 int main(int argc, char *argv[])
 {
-	// define the nodal coordinates of the nozzle (done ONCE)
-	InnerProdVector x_coord(nodes, 0.0);
-	InnerProdVector y_coord(nodes, 0.0);
+  // define the nodal coordinates of the nozzle (done ONCE)
+  InnerProdVector x_coord(nodes, 0.0);
+  InnerProdVector y_coord(nodes, 0.0);
   for (int i = 0; i < nodes; i++) {
   	// create uniform spaced x coordinates
     x_coord(i) = MeshCoord(length, nodes, i);
     // linearly varying y coordinates
-    y_coord(i) = (0.3/length)*x_coord(i);
+    y_coord(i) = y_left + (y_right - y_left)*x_coord(i)/length;
   }
 
   // define the Bspline for the nozzle

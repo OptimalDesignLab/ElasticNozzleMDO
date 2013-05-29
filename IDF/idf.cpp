@@ -21,6 +21,7 @@
 #include "../quasi_1d_euler/nozzle.hpp"
 #include "../quasi_1d_euler/quasi_1d_euler.hpp"
 #include "../linear_elastic_csm/lecsm.hpp"
+#include "../constants.hpp"
 
 using std::cout;
 using std::cerr;
@@ -40,43 +41,16 @@ static vector<InnerProdVector> design;    // design vectors
 static vector<InnerProdVector> state;     // state vectors
 static vector<InnerProdVector> dual;      // dual vectors
  
-// domain parameters
-static const double length = 1.0;
-static const double x_min = 0.0;
-static const double x_max = x_min + length;
-
 // design parameters
 static int num_design; // total number of design vars (control points + coupling)
 static int num_bspline; // number of b-spline control points
-static const double area_left = 2.0;
-static const double area_right = 1.75;
 
-// discretization parameters
-static const int nodes = 21;
+// some vector sizes
 static const int num_dis_var = 3*nodes; // number of states in a discipline
 static const int num_var = 2*num_dis_var; // number of states total
 static const int num_ceq = 2*nodes; // number of equality constraints
 
-// CFD discretization parameters
-static const int order = 3;
-static const bool sbp_quad = true; // use SBP norm for quadrature
-
-// CFD solution parameters
-static const double kAreaStar = 0.8; // for the exact solution
-static const bool subsonic = true; // for the exact solution
-static const double kTempStag = 300.0;
-static const double kPressStag = 100000;
-static const double kRGas = 287.0;
-static double rho_R, rho_u_R, e_R;
-static double p_ref;
 static const InnerProdVector press_stag(nodes, kPressStag);
-
-// CSM solution parameters
-double E = 100000000.0;   // Young's modulus
-double w = 1.0;         // fixed width of nozzle
-double t = 0.01;        // fixed beam element thickness
-double h = 2;           // max height of the nozzle
-
 static LECSM csm_solver(nodes);
 static Quasi1DEuler cfd_solver(nodes, order);
 static BsplineNozzle nozzle_shape;
@@ -144,7 +118,25 @@ int main(int argc, char *argv[]) {
     cout << "Running design with " << num_design << " design vars." << endl;
   }
 
-  // define the x-coordinates
+  // set the nodal degrees of freedom for the CSM
+  InnerProdVector BCtype(3*num_nodes_, 0.0);
+  InnerProdVector BCval(3*num_nodes_, 0.0);
+  for (int i=0; i<num_nodes_; i++) {
+    BCtype(3*i) = 0; //-1;
+    BCtype(3*i+1) = -1;
+    BCtype(3*i+2) = -1;
+    BCval(3*i) = 0;
+    BCval(3*i+1) = 0;
+    BCval(3*i+2) = 0;
+  }
+  BCtype(0) = 0;
+  BCtype(1) = 0;
+  BCtype(2) = -1;
+  BCtype(3*num_nodes_-3) = 0;
+  BCtype(3*num_nodes_-2) = 0;
+  BCtype(3*num_nodes_-1) = -1;  
+  
+  // define the x- and y-coordinates, and the linearly varying nozzle area
   InnerProdVector x_coord(nodes, 0.0);
   for (int i = 0; i < nodes; i++) {
     x_coord(i) = MeshCoord(length, nodes, i);
@@ -162,13 +154,13 @@ int main(int argc, char *argv[]) {
   
   // find the target pressure and the number of preconditioner calls for the MDA
   InnerProdVector press_targ(nodes, 0.0);
-  int solver_precond_calls = FindTargPress(press_targ);
+  int solver_precond_calls = FindTargPress(x_coord, BCtype, BCval, press_targ);
 
   // set-up the cfd_solver
   InitCFDSolver(x_coord, press_targ);
   
   // set-up the csm_solver
-  InitCSMSolver(x_coord);
+  InitCSMSolver(x_coord, y_coord, BCtype, BCval);
   
   map<string,string> optns;
   //optns["inner.lambda_init"] = "0.8";
@@ -198,10 +190,6 @@ double MeshCoord(const double & length, const int & num_nodes,
   double xi = static_cast<double>(i)/static_cast<double>(num_nodes-1);
   // uniform spacing
   return length*xi;
-  // simple exponential mesh spacing
-  //return (exp(4.0*xi)-1.0)/(exp(4.0)-1.0);
-  // mesh ponts clustered near center
-  //return (xi + (cos(pi*xi) - 1.0)/pi)/(1.0 -2.0/pi);
 }
 
 // ======================================================================
@@ -225,10 +213,13 @@ double InitNozzleArea(const double & x) {
 
 // ======================================================================
 
-void FindTargPress(InnerProdVector & targ_press) {
-  // WARNING: we are hard coding the parameters into InitializeTestProb()!!!
+void FindTargPress(const InnerProdVector & x_coord,
+                   const InnerProdVector & BCtype,
+                   const InnerProdVector & BCval
+                   InnerProdVector & targ_press) {
   AeroStructMDA asmda(nodes, order);
-  asmda.InitializeTestProb();
+  asmda.InitializeCFD(x_coord, area);
+  asmda.InitializeCSM(x_coord, y_coord, BCtype, BCval, E, thick, width, height);
   int precond_calls = asmda.NewtonKrylov(30, 1.e-8);
   
 }
@@ -274,29 +265,13 @@ void InitCFDSolver(const InnerProdVector & x_coord,
 // ======================================================================
 
 void InitCSMSolver(const InnerProdVector & x_coord,
-                   const InnerProdVector & y_coord) {
+                   const InnerProdVector & y_coord,
+                   const InnerProdVector & BCtype,
+                   const InnerProdVector & BCval) {
   // set material properties
   csm_solver.set_material(E, t, w, h);
   // create the CSM mesh
   csm_solver.GenerateMesh(x_coord, y_coord);
-  
-  // set the nodal degrees of freedom
-  InnerProdVector BCtype(3*num_nodes_, 0.0);
-  InnerProdVector BCval(3*num_nodes_, 0.0);
-  for (int i=0; i<num_nodes_; i++) {
-    BCtype(3*i) = 0; //-1;
-    BCtype(3*i+1) = -1;
-    BCtype(3*i+2) = -1;
-    BCval(3*i) = 0;
-    BCval(3*i+1) = 0;
-    BCval(3*i+2) = 0;
-  }
-  BCtype(0) = 0;
-  BCtype(1) = 0;
-  BCtype(2) = -1;
-  BCtype(3*num_nodes_-3) = 0;
-  BCtype(3*num_nodes_-2) = 0;
-  BCtype(3*num_nodes_-1) = -1;  
   csm_.SetBoundaryConds(BCtype, BCval);  
 }
 

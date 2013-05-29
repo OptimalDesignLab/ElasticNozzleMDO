@@ -6,6 +6,7 @@
  */
 
 #include "./aerostruct.hpp"
+#include "./constants.hpp"
 
 #include <math.h>
 
@@ -28,10 +29,10 @@ using std::string;
 using std::ofstream;
 
 // solution parameters
-static const double kAreaStar = 0.8; // for the exact solution
-static const double kTempStag = 300.0;
-static const double kPressStag = 100000;
-static const double kRGas = 287.0;
+//static const double kAreaStar = 0.8; // for the exact solution
+//static const double kTempStag = 300.0;
+//static const double kPressStag = 100000;
+//static const double kRGas = 287.0;
 
 // ======================================================================
 
@@ -61,23 +62,28 @@ void AeroStructMDA::UpdateFromNozzle()
 void AeroStructMDA::InitializeTestProb()
 {
   // set material properties for CSM
-  double E = 100000000;   // Young's modulus
+  double E = 50000000;   // Young's modulus
   double w = 1.0;           // fixed width of nozzle
   double t = 0.01;        // fixed beam element thickness
   double h = 2;           // max height of the nozzle
-  
 
   // start defining the nozzle
   double length = 1.0;
   InnerProdVector x_coord(num_nodes_, 0.0);
   InnerProdVector y_coord(num_nodes_, 0.0);
   InnerProdVector area(num_nodes_, 0.0);
+  double a = area_left;
+  double b = 4.0*area_mid - 5.0*area_left + area_right;
+  double c = -4.0*(area_right -2.0*area_left + area_mid);
+  double d = 4.0*(area_right - area_left);
   for (int i = 0; i < num_nodes_; i++) {
     // evenly spaced nodes along the x
     x_coord(i) = i*length/(num_nodes_-1);
     //y_coord(i) = 0.0025*(10 - x_coord(i))*x_coord(i);
-    y_coord(i) = 0.25*(1.0 - x_coord(i))*x_coord(i);
-    area(i) = w*(h - 2*y_coord(i));
+    //y_coord(i) = 0.25*(1.0 - x_coord(i))*x_coord(i);
+    //area(i) = w*(h - 2*y_coord(i));
+    area(i) = a + x_coord(i)*(b + x_coord(i)*(c + x_coord(i)*d));
+    y_coord(i) = 0.5*(h - area(i)/width);
   }
 
   // initialize the CFD solver
