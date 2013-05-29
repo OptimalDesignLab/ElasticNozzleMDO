@@ -43,7 +43,7 @@ OBJS= $(SOURCES:.cpp=.o)
 BINARIES= MDA_test.bin optimize.bin
 
 # implicit rule
-%.o : %.cpp $(HEADERS_ALL) Makefile
+%.o : %.cpp $(HEADERS) Makefile
 	@echo "Compiling \""$@"\" from \""$<"\""
 	@$(CXX) $(CPPFLAGS) $(ALL_CXXFLAGS) -o $@ -c $<
 

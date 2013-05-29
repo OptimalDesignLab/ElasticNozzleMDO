@@ -114,8 +114,13 @@ int main(int argc, char *argv[])
   solver.InitializeCSM(x_coord, y_coord, BCtype, BCval, E, thick, width, height);
   int precond_calls = solver.NewtonKrylov(30, tol);
   solver.CopyPressIntoTarget();
+
+#if 0
+  // uncomment to plot initial pressure and displaced area
+  solver.GetTecplot(1.0, 1.0);
+  throw(-1);
+#endif
   
-  //solver.GetTecplot(1.0, 1.0);
   solver.SetDesignVars(num_design);
 
   // run the optimizer
@@ -130,6 +135,9 @@ int main(int argc, char *argv[])
        << ( static_cast<double>(kona_precond_calls)
             /static_cast<double>(solver_precond_calls) ) << endl;
 
+  solver.NewtonKrylov(20, tol);
+  solver.GetTecplot(1.0, 1.0);
+  
   // plot results?
 }
 
@@ -536,7 +544,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       nozzle_shape.SetCoeff(design[i]);
       solver.UpdateFromNozzle();
       //solver.set_area(nozzle_shape.Area(solver.get_x_coord()));
-      //solver.WriteTecplot(1.0, 1.0);
+      //solver.GetTecplot(1.0, 1.0);
       //solver.InitialCondition(rho_R, rho_u_R, e_R);
       iwrk[0] = solver.NewtonKrylov(20, tol);
       state[j] = solver.get_u();
@@ -551,6 +559,8 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       assert((k >= 0) && (k < num_state_vec));
       nozzle_shape.SetCoeff(design[i]);
       solver.UpdateFromNozzle();
+      solver.set_u(state[j]);
+      solver.UpdateDisciplineStates();
       InnerProdVector dJdu(num_var, 0.0);
       solver.CalcInverseDesigndJdQ(dJdu);
       dJdu *= -1.0;

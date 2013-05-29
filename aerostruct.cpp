@@ -83,8 +83,15 @@ void AeroStructMDA::UpdateFromNozzle()
   double rho_u_R = rho_u/(a_ref*rho_ref);
   double e_R =  e/(rho_ref*a_ref*a_ref);
 
-  // set boundary and initial conditions
-  cfd_.InitialCondition(rho_R, rho_u_R, e_R);
+  // set initial condition guess
+  u_ = 0.0;
+  // initialize the CFD part of the aerostructural solution guess
+  // NOTE: this is needed, because CalcResidual resets the cfd q variables
+  for (int i = 0; i < num_nodes_; i++) {
+    u_(3*i) = rho_R;
+    u_(3*i+1) = rho_u_R;
+    u_(3*i+2) = e_R;
+  }  
 }
 
 // ======================================================================
@@ -331,7 +338,7 @@ void AeroStructMDA::CalcResidual()
     u_cfd(i) = u_(i);
     u_csm(i) = u_(3*num_nodes_+i);
   }
-
+  
   // Update the discipline vectors
   cfd_.set_q(u_cfd);                 // set the flow variables
   csm_.set_u(u_csm);                 // set the nodal displacements

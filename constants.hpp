@@ -38,5 +38,5 @@ const double E = 1000000000.0;   // Young's modulus
 const double thick = 0.01;        // fixed beam element thickness
 
 // tolerances for primal and adjoint problems
-const double tol = 1.e-8;
+const double tol = 1.e-10;
 const double adj_tol = 1.e-6;
