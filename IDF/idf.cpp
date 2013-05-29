@@ -80,12 +80,14 @@ void InitCSMSolver(const InnerProdVector & x_coord,
                    const InnerProdVector & BCtype,
                    const InnerProdVector & BCval);
 
-void CalcYCoords(const InnerProdVector & area, InnerProdVector y_coord);
+void CalcYCoords(const InnerProdVector & area, InnerProdVector & y_coord);
 
+#if 0
 void CalcDAreaDYdisp(const InnerProdVector & u_csm, InnerProdVector & v_area);
 
 void CalcDAreaDYdispTrans(const InnerProdVector & u_area,
                           InnerProdVector & v_csm);
+#endif
 
 // The following routines extract specific vectors from design[i]
 void GetBsplinePts(const int & i, InnerProdVector & pts);
@@ -234,6 +236,8 @@ int FindTargPress(const InnerProdVector & x_coord,
   asmda.InitializeCFD(x_coord, area);
   asmda.InitializeCSM(x_coord, y_coord, BCtype, BCval, E, thick, width, height);
   int precond_calls = asmda.NewtonKrylov(30, 1.e-8);
+  //asmda.GetTecplot(1.0, 1.0);
+  //throw(-1);
   targ_press = asmda.get_press();
   return precond_calls;
 }
@@ -248,7 +252,7 @@ void InitCFDSolver(const InnerProdVector & x_coord,
                 kTempStag, kPressStag, rho, rho_u, e);
   double rho_ref = rho;
   double press = (kGamma - 1.0)*(e - 0.5*rho_u*rho_u/rho);
-  double p_ref = press;
+  p_ref = press; // defines static variable
   double a_ref = sqrt(kGamma*press/rho_ref);
   double rho_L = 1.0;
   double rho_u_L = rho_u/(a_ref*rho_ref);
@@ -292,15 +296,15 @@ void InitCSMSolver(const InnerProdVector & x_coord,
 
 // ======================================================================
 
-void CalcYCoords(const InnerProdVector & area, InnerProdVector y_coord) {
+void CalcYCoords(const InnerProdVector & area, InnerProdVector & y_coord) {
   assert(area.size() == nodes);
   assert(y_coord.size() == nodes);
   for (int j = 0; j < nodes; j++)
-    y_coord(j) = 0.5*(height - area(j)/width);  
+    y_coord(j) = 0.5*(height - area(j)/width);
 }
 
 // ======================================================================
-
+#if 0
 void CalcDAreaDYdisp(const InnerProdVector & u_csm, InnerProdVector & v_area) {
   assert(u_csm.size() == num_dis_var);
   assert(v_area.size() == nodes);
@@ -317,7 +321,7 @@ void CalcDAreaDYdispTrans(const InnerProdVector & u_area,
   for (int j = 0; j < nodes; j++)
     v_csm(3*j+1) = -2.0*width*u_area(j);
 }
-
+#endif
 // ======================================================================
 
 void GetBsplinePts(const int & i, InnerProdVector & pts) {
@@ -692,8 +696,9 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       GetCSMState(j, u);
       nozzle_shape.SetCoeff(pts);
       area = nozzle_shape.Area(cfd_solver.get_x_coord());
-      CalcYCoords(area, y_coords);
-      csm_solver.GenerateMesh(cfd_solver.get_x_coord(), y_coords);      
+      CalcYCoords(area, y_coords);      
+      csm_solver.set_coords(cfd_solver.get_x_coord(), y_coords);
+      csm_solver.UpdateMesh();
       press *= p_ref;
       press -= press_stag;
       csm_solver.set_press(press);
@@ -729,7 +734,8 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       nozzle_shape.SetCoeff(pts);
       area = nozzle_shape.Area(cfd_solver.get_x_coord());
       CalcYCoords(area, y_coords);
-      csm_solver.GenerateMesh(cfd_solver.get_x_coord(), y_coords); 
+      csm_solver.set_coords(cfd_solver.get_x_coord(), y_coords);
+      csm_solver.UpdateMesh();
       csm_solver.set_u(u);
       csm_solver.CalcCoordsAndArea();
       ceq_csm = csm_solver.get_area();
@@ -766,7 +772,8 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       nozzle_shape.SetCoeff(pts);
       area = nozzle_shape.Area(cfd_solver.get_x_coord());
       CalcYCoords(area, y_coords);
-      csm_solver.GenerateMesh(cfd_solver.get_x_coord(), y_coords);      
+      csm_solver.set_coords(cfd_solver.get_x_coord(), y_coords);
+      csm_solver.UpdateMesh();
       press *= p_ref;
       press -= press_stag;
       csm_solver.set_press(press);
@@ -781,6 +788,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       GetBsplinePts(k, pts);
       u_area = nozzle_shape.AreaForwardDerivative(cfd_solver.get_x_coord(),
                                                   pts);
+      //csm_solver.Calc_dydA_Product(u_area, u);
       u_area /= -(2.0*width); // multiply dy/dA *(dA/db * u_pts)
       csm_solver.CalcFD_dSdy_Product(u_area, v_cfd); // dS/dy *(dy/db * u_pts)
       v_csm += v_cfd;
@@ -816,7 +824,8 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       nozzle_shape.SetCoeff(pts);
       area = nozzle_shape.Area(cfd_solver.get_x_coord());
       CalcYCoords(area, y_coords);
-      csm_solver.GenerateMesh(cfd_solver.get_x_coord(), y_coords);      
+      csm_solver.set_coords(cfd_solver.get_x_coord(), y_coords);
+      csm_solver.UpdateMesh();
       GetCSMState(k, u_csm);
       csm_solver.Calc_dSdu_Product(u_csm, v_csm);
       SetCSMState(m, v_csm);
@@ -842,14 +851,15 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       // Evaluate the CSM part of the transposed-Jacobian-vec product
       InnerProdVector pts(num_bspline, 0.0), press(nodes, 0.0),
           y_coords(nodes, 0.0), u(num_dis_var, 0.0), v_press(nodes, 0.0),
-          v_pts(num_bspline, 0.0);
+          v_y(nodes, 0.0), v_pts(num_bspline, 0.0);
       GetBsplinePts(i, pts);
       GetCouplingPress(i, press);
       GetCSMState(j, u);
       nozzle_shape.SetCoeff(pts);
       area = nozzle_shape.Area(cfd_solver.get_x_coord());
       CalcYCoords(area, y_coords);
-      csm_solver.GenerateMesh(cfd_solver.get_x_coord(), y_coords);      
+      csm_solver.set_coords(cfd_solver.get_x_coord(), y_coords);
+      csm_solver.UpdateMesh();
       press *= p_ref;
       press -= press_stag;
       csm_solver.set_press(press);
@@ -863,6 +873,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
 
       // second part: (dS/d(pts))^T * u_csm
       csm_solver.CalcTransFD_dSdy_Product(u, v_area); // (dS/dy)^T * u_csm
+      //csm_solver.CalcTrans_dydA_Product(v_area, v_y);      
       v_area /= -(2.0*width); // (dy/dA)^T * (dS/dy)^T * u_csm
       v_pts = nozzle_shape.AreaReverseDerivative(
           cfd_solver.get_x_coord(), v_area); // (dA/db)^T * (dy/dA)^T ...
@@ -896,7 +907,8 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       nozzle_shape.SetCoeff(pts);
       area = nozzle_shape.Area(cfd_solver.get_x_coord());
       CalcYCoords(area, y_coords);
-      csm_solver.GenerateMesh(cfd_solver.get_x_coord(), y_coords);      
+      csm_solver.set_coords(cfd_solver.get_x_coord(), y_coords);
+      csm_solver.UpdateMesh();
       GetCSMState(k, u_csm);
       csm_solver.Calc_dSdu_Product(u_csm, v_csm);
       SetCSMState(m, v_csm);            
@@ -941,7 +953,8 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       nozzle_shape.SetCoeff(pts);
       area = nozzle_shape.Area(cfd_solver.get_x_coord());
       CalcYCoords(area, y_coords);
-      csm_solver.GenerateMesh(cfd_solver.get_x_coord(), y_coords);
+      csm_solver.set_coords(cfd_solver.get_x_coord(), y_coords);
+      csm_solver.UpdateMesh();
       GetCSMState(k, u_csm);
       csm_solver.SolveFor(u_csm, 100, 1e-5);
       SetCSMState(m, csm_solver.get_u());
@@ -969,7 +982,8 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       nozzle_shape.SetCoeff(pts);
       area = nozzle_shape.Area(cfd_solver.get_x_coord());
       CalcYCoords(area, y_coords);
-      csm_solver.GenerateMesh(cfd_solver.get_x_coord(), y_coords);
+      csm_solver.set_coords(cfd_solver.get_x_coord(), y_coords);
+      csm_solver.UpdateMesh();
       GetCSMState(k, u_csm);
       csm_solver.SolveFor(u_csm, 100, 1e-5);
       SetCSMState(m, csm_solver.get_u());
@@ -1022,8 +1036,8 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       // component corresponding to (area - area_coupling)
       InnerProdVector u_csm(num_dis_var, 0.0), v_area(nodes, 0.0);
       GetCSMState(k, u_csm);
-      CalcDAreaDYdisp(u_csm, v_area);
-      SetAreaCnstr(m, v_area);      
+      csm_solver.Calc_dAdu_Product(u_csm, v_area);
+      SetAreaCnstr(m, v_area);
       break;
     }
     case kona::tceqjac_d: {// apply design component of constraint Jac to dual
@@ -1073,7 +1087,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       // component corresponding to (area - area_coupling)
       InnerProdVector u_area(nodes, 0.0), v_csm(num_dis_var, 0.0);
       GetAreaCnstr(k, u_area);
-      CalcDAreaDYdispTrans(u_area, v_csm);
+      csm_solver.CalcTrans_dAdu_Product(u_area, v_csm);
       SetCSMState(m, v_csm);
       break;        
     }       
@@ -1137,10 +1151,11 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
 
       // Solve for pressure based on initial area (is there a better way?)
       cfd_solver.InitialCondition(rho_R, rho_u_R, e_R);
+      cfd_solver.set_area(area);
       iwrk[0] = cfd_solver.NewtonKrylov(100, 1.e-6);
+      cfd_solver.WriteTecplot(1.0, 1.0, "init_pressure_area.dat");      
       press = cfd_solver.get_press();
       SetCouplingPress(i, press);
-      
       cout << "kona::initdesign design coeff = ";
       for (int n = 0; n < num_bspline; n++)
         cout << pts(n) << " ";
@@ -1156,6 +1171,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       // Solve the CFD
       InnerProdVector area(nodes, 0.0);
       GetCouplingArea(i, area);
+      cfd_solver.set_area(area);
       cfd_solver.InitialCondition(rho_R, rho_u_R, e_R);
       iwrk[0] = cfd_solver.NewtonKrylov(20, 1.e-10);
       SetCFDState(j, cfd_solver.get_q());
@@ -1165,9 +1181,10 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       GetBsplinePts(i, pts);
       GetCouplingPress(i, press);
       nozzle_shape.SetCoeff(pts);
-      area = nozzle_shape.Area(cfd_solver.get_x_coord());
+      area = nozzle_shape.Area(cfd_solver.get_x_coord());     
       CalcYCoords(area, y_coords);
-      csm_solver.GenerateMesh(cfd_solver.get_x_coord(), y_coords);
+      csm_solver.set_coords(cfd_solver.get_x_coord(), y_coords);
+      csm_solver.UpdateMesh();
       press *= p_ref;
       press -= press_stag;
       csm_solver.set_press(press);

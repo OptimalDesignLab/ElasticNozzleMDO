@@ -62,7 +62,7 @@ void AeroStructMDA::UpdateFromNozzle()
 void AeroStructMDA::InitializeTestProb()
 {
   // set material properties for CSM
-  double E = 50000000;   // Young's modulus
+  double E = 100000000;   // Young's modulus
   double w = 1.0;           // fixed width of nozzle
   double t = 0.01;        // fixed beam element thickness
   double h = 2;           // max height of the nozzle
@@ -82,7 +82,8 @@ void AeroStructMDA::InitializeTestProb()
     //y_coord(i) = 0.0025*(10 - x_coord(i))*x_coord(i);
     //y_coord(i) = 0.25*(1.0 - x_coord(i))*x_coord(i);
     //area(i) = w*(h - 2*y_coord(i));
-    area(i) = a + x_coord(i)*(b + x_coord(i)*(c + x_coord(i)*d));
+    //area(i) = area_left + (area_right - area_left)*x_coord(i)/length;
+    area(i) = a + x_coord(i)*(b + x_coord(i)*(c + x_coord(i)*d));    
     y_coord(i) = 0.5*(h - area(i)/width);
   }
 
