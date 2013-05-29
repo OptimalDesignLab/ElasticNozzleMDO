@@ -23,12 +23,12 @@ DEPENDENCIES:
 _________________________________________________________________________________
 CURRENT ISSUES:
 
-+ Optimization routines still need validation.
++ Objective function is incomplete.
 
-+ Objective function and its derivatives are incomplete.
++ Transpose-product of the aero-structural jacobian needs review.
 
-+ userFunc required by KonaOptimize needs to be put together. Most of the pieces
-are coded and ready to be implemented
++ eval_precond for userFunc seems unnecessary. This is buried into the actual
+preconditioning routines
 
-+ BsplineNozzle needs to be created.
++ CalcInverseDesigndJdQ missing from Quasi 1D Euler
 
