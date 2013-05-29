@@ -91,7 +91,8 @@ double InitNozzleArea(const double & x);
 void InitCFDSolver(const InnerProdVector & x_coord,
                    const InnerProdVector & press_targ);
 
-void InitCSMSolver(const InnerProdVector & x_coord);
+void InitCSMSolver(const InnerProdVector & x_coord,
+                   const InnerProdVector & y_coord);
 
 void CalcYCoord(const InnerProdVector & area, InnerProdVector y_coord);
 
@@ -145,8 +146,11 @@ int main(int argc, char *argv[]) {
 
   // define the x-coordinates
   InnerProdVector x_coord(nodes, 0.0);
-  for (int i = 0; i < nodes; i++)
+  for (int i = 0; i < nodes; i++) {
     x_coord(i) = MeshCoord(length, nodes, i);
+    double A = area_left + (area_right - area_left)*(x_coord(i)/length);
+    y_coord(i) = 0.5*(h - A/w);
+  }
   
   // define the target nozzle shape and set area 
   // NOTE: the left and right nozzle areas are fixed and are not
@@ -269,7 +273,8 @@ void InitCFDSolver(const InnerProdVector & x_coord,
 
 // ======================================================================
 
-void InitCSMSolver(const InnerProdVector & x_coord) {
+void InitCSMSolver(const InnerProdVector & x_coord,
+                   const InnerProdVector & y_coord) {
   // set material properties
   csm_solver.set_material(E, t, w, h);
   // create the CSM mesh
@@ -783,12 +788,13 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       csm_solver.Calc_dSdp_Product(press, v_csm);
 
       // second part: dS/d(pts) * u_pts
-      
+      GetBsplinePts(k, pts);
+      u_area = nozzle_shape.AreaForwardDerivative(cfd_solver.get_x_coord(),
+                                                  pts);
+      u_area /= -(2.0*w); // multiply dy/dA *(dA/db * u_pts)
+      CalcFD_dSdy_Product(u_area, v_cfd); // multiply dS/dy *(dy/db * u_pts)
+      v_csm += v_cfd;
       SetCSMState(m, v_csm);
-
-      cout << "kona::jacvec_d not implemented yet" << endl;
-      throw(-1);
-      
       break;
     }
     case kona::jacvec_s: {// apply state component of the Jacobian-vector
@@ -846,7 +852,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       // Evaluate the CSM part of the transposed-Jacobian-vec product
       InnerProdVector pts(num_bspline, 0.0), press(nodes, 0.0),
           y_coords(nodes, 0.0), u(num_dis_var, 0.0), v_press(nodes, 0.0),
-          v_pts(num_bspline, 0.0);
+          v_pts(num_bspline, 0.0), v_area(nodes, 0.0);
       GetBsplinePts(i, pts);
       GetCouplingPress(i, press);
       GetCSMState(j, u);
@@ -862,13 +868,15 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       // first part: (dS/dp)^T * u_csm
       GetCSMState(k, u);
       csm_solver.CalcTrans_dSdp_Product(u, v_press);
+      v_press *= p_ref;
       SetCouplingPress(m, v_press);
 
       // second part: (dS/d(pts))^T * u_csm
-
+      CalcTransFD_dSdy_Product(u, v_area); // (dS/dy)^T * u_csm
+      v_area /= -(2.0*w); // (dy/dA)^T * (dS/dy)^T * u_csm
+      v_pts = nozzle_shape.AreaReverseDerivative(
+          cfd_solver.get_x_coord(), v_area); // (dA/db)^T * (dy/dA)^T ...
       SetBsplinePts(m, v_pts);
-      cout << "kona::tjacvec_d not implemented yet" << endl;
-      throw(-1);
       break;
     }
     case kona::tjacvec_s: {// apply state component of Jacobian to adj
