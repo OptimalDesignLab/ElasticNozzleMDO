@@ -224,7 +224,8 @@ void AeroStructMDA::GridTest() {
 
 // ======================================================================
 
-void AeroStructMDA::InitializeCFD(InnerProdVector & x_coord, InnerProdVector & area)
+void AeroStructMDA::InitializeCFD(const InnerProdVector & x_coord,
+                                  const InnerProdVector & area)
 {
   // set the CFD "mesh"
   cfd_.set_x_coord(x_coord);
@@ -267,9 +268,11 @@ void AeroStructMDA::InitializeCFD(InnerProdVector & x_coord, InnerProdVector & a
 
 // ======================================================================
 
-void AeroStructMDA::InitializeCSM(InnerProdVector & x_coord, InnerProdVector & y_coord,
-                          InnerProdVector & BCtype, InnerProdVector & BCval,
-                          double E, double t, double w, double h)
+void AeroStructMDA::InitializeCSM(const InnerProdVector & x_coord,
+                                  const InnerProdVector & y_coord,
+                                  const InnerProdVector & BCtype,
+                                  const InnerProdVector & BCval,
+                                  double E, double t, double w, double h)
 {
   // set material properties
   csm_.set_material(E, t, w, h);

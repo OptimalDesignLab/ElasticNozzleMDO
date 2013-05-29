@@ -21,6 +21,7 @@
 #include "../quasi_1d_euler/nozzle.hpp"
 #include "../quasi_1d_euler/quasi_1d_euler.hpp"
 #include "../linear_elastic_csm/lecsm.hpp"
+#include "../aerostruct.hpp"
 #include "../constants.hpp"
 
 using std::cout;
@@ -50,6 +51,10 @@ static const int num_dis_var = 3*nodes; // number of states in a discipline
 static const int num_var = 2*num_dis_var; // number of states total
 static const int num_ceq = 2*nodes; // number of equality constraints
 
+// used for initial conditions and scaling
+static double rho_R, rho_u_R, e_R;
+static double p_ref;
+
 static const InnerProdVector press_stag(nodes, kPressStag);
 static LECSM csm_solver(nodes);
 static Quasi1DEuler cfd_solver(nodes, order);
@@ -62,13 +67,20 @@ double TargetNozzleArea(const double & x);
 
 double InitNozzleArea(const double & x);
 
+int FindTargPress(const InnerProdVector & x_coord,
+                  const InnerProdVector & BCtype,
+                  const InnerProdVector & BCval,
+                  InnerProdVector & targ_press);
+
 void InitCFDSolver(const InnerProdVector & x_coord,
                    const InnerProdVector & press_targ);
 
 void InitCSMSolver(const InnerProdVector & x_coord,
-                   const InnerProdVector & y_coord);
+                   const InnerProdVector & y_coord,
+                   const InnerProdVector & BCtype,
+                   const InnerProdVector & BCval);
 
-void CalcYCoord(const InnerProdVector & area, InnerProdVector y_coord);
+void CalcYCoords(const InnerProdVector & area, InnerProdVector y_coord);
 
 void CalcDAreaDYdisp(const InnerProdVector & u_csm, InnerProdVector & v_area);
 
@@ -119,9 +131,9 @@ int main(int argc, char *argv[]) {
   }
 
   // set the nodal degrees of freedom for the CSM
-  InnerProdVector BCtype(3*num_nodes_, 0.0);
-  InnerProdVector BCval(3*num_nodes_, 0.0);
-  for (int i=0; i<num_nodes_; i++) {
+  InnerProdVector BCtype(num_dis_var, 0.0);
+  InnerProdVector BCval(num_dis_var, 0.0);
+  for (int i = 0; i < nodes; i++) {
     BCtype(3*i) = 0; //-1;
     BCtype(3*i+1) = -1;
     BCtype(3*i+2) = -1;
@@ -132,24 +144,19 @@ int main(int argc, char *argv[]) {
   BCtype(0) = 0;
   BCtype(1) = 0;
   BCtype(2) = -1;
-  BCtype(3*num_nodes_-3) = 0;
-  BCtype(3*num_nodes_-2) = 0;
-  BCtype(3*num_nodes_-1) = -1;  
+  BCtype(num_dis_var-3) = 0;
+  BCtype(num_dis_var-2) = 0;
+  BCtype(num_dis_var-1) = -1;  
   
   // define the x- and y-coordinates, and the linearly varying nozzle area
-  InnerProdVector x_coord(nodes, 0.0);
+  InnerProdVector x_coord(nodes, 0.0), y_coord(nodes, 0.0);
   for (int i = 0; i < nodes; i++) {
     x_coord(i) = MeshCoord(length, nodes, i);
-    double A = area_left + (area_right - area_left)*(x_coord(i)/length);
-    y_coord(i) = 0.5*(h - A/w);
+    double A = InitNozzleArea(x_coord(i)/length);
+    y_coord(i) = 0.5*(height - A/width);
   }
   
-  // define the target nozzle shape and set area 
-  // NOTE: the left and right nozzle areas are fixed and are not
-  // included in the number of design variables
-  InnerProdVector area_targ(nodes, 0.0);
-  for (int i = 0; i < nodes; i++)
-    area_targ(i) = TargetNozzleArea(x_coord(i));  
+  // define the left and right nozzle areas
   nozzle_shape.SetAreaAtEnds(area_left, area_right);
   
   // find the target pressure and the number of preconditioner calls for the MDA
@@ -196,7 +203,7 @@ double MeshCoord(const double & length, const int & num_nodes,
 
 double TargetNozzleArea(const double & x) {
   // cubic polynomial nozzle
-  const double area_mid = 1.5;
+  //const double area_mid = 1.5;
   double a = area_left;
   double b = 4.0*area_mid - 5.0*area_left + area_right;
   double c = -4.0*(area_right -2.0*area_left + area_mid);
@@ -213,15 +220,22 @@ double InitNozzleArea(const double & x) {
 
 // ======================================================================
 
-void FindTargPress(const InnerProdVector & x_coord,
-                   const InnerProdVector & BCtype,
-                   const InnerProdVector & BCval
-                   InnerProdVector & targ_press) {
+int FindTargPress(const InnerProdVector & x_coord,
+                  const InnerProdVector & BCtype,
+                  const InnerProdVector & BCval,
+                  InnerProdVector & targ_press) {
+  // define the target nozzle area and corresponding y-coord
+  InnerProdVector area(nodes, 0.0), y_coord(nodes, 0.0);
+  for (int i = 0; i < nodes; i++) {
+    area(i) = TargetNozzleArea(x_coord(i));
+    y_coord(i) = 0.5*(height - area(i)/width);
+  }  
   AeroStructMDA asmda(nodes, order);
   asmda.InitializeCFD(x_coord, area);
   asmda.InitializeCSM(x_coord, y_coord, BCtype, BCval, E, thick, width, height);
   int precond_calls = asmda.NewtonKrylov(30, 1.e-8);
-  
+  targ_press = asmda.get_press();
+  return precond_calls;
 }
 
 // ======================================================================
@@ -269,19 +283,20 @@ void InitCSMSolver(const InnerProdVector & x_coord,
                    const InnerProdVector & BCtype,
                    const InnerProdVector & BCval) {
   // set material properties
-  csm_solver.set_material(E, t, w, h);
+  csm_solver.set_material(E, thick, width, height);
   // create the CSM mesh
   csm_solver.GenerateMesh(x_coord, y_coord);
-  csm_.SetBoundaryConds(BCtype, BCval);  
+  // set boundary conditions
+  csm_solver.SetBoundaryConds(BCtype, BCval);  
 }
 
 // ======================================================================
 
-void CalcYCoord(const InnerProdVector & area, InnerProdVector y_coord) {
+void CalcYCoords(const InnerProdVector & area, InnerProdVector y_coord) {
   assert(area.size() == nodes);
   assert(y_coord.size() == nodes);
   for (int j = 0; j < nodes; j++)
-    y(j) = 0.5*(h - area(j)/w);  
+    y_coord(j) = 0.5*(height - area(j)/width);  
 }
 
 // ======================================================================
@@ -290,7 +305,7 @@ void CalcDAreaDYdisp(const InnerProdVector & u_csm, InnerProdVector & v_area) {
   assert(u_csm.size() == num_dis_var);
   assert(v_area.size() == nodes);
   for (int j = 0; j < nodes; j++)
-    v_area(j) = -2.0*w*u_csm(3*j+1);
+    v_area(j) = -2.0*width*u_csm(3*j+1);
 }
 
 // ======================================================================
@@ -300,7 +315,7 @@ void CalcDAreaDYdispTrans(const InnerProdVector & u_area,
   assert(v_csm.size() == num_dis_var);
   assert(u_area.size() == nodes);
   for (int j = 0; j < nodes; j++)
-    v_csm(3*j+1) = -2.0*w*u_area(j);
+    v_csm(3*j+1) = -2.0*width*u_area(j);
 }
 
 // ======================================================================
@@ -679,7 +694,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       area = nozzle_shape.Area(cfd_solver.get_x_coord());
       CalcYCoords(area, y_coords);
       csm_solver.GenerateMesh(cfd_solver.get_x_coord(), y_coords);      
-      press *= p_ref_;
+      press *= p_ref;
       press -= press_stag;
       csm_solver.set_press(press);
       csm_solver.set_u(u);
@@ -744,7 +759,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       SetCFDState(m, v_cfd);
       // Evaluate the CSM part of the Jacobian-vec product
       InnerProdVector pts(num_bspline, 0.0), press(nodes, 0.0),
-          y_coords(nodes, 0.0), v_csm(num_dis_var, 0.0);
+          y_coords(nodes, 0.0), u(num_dis_var, 0.0), v_csm(num_dis_var, 0.0);
       GetBsplinePts(i, pts);
       GetCouplingPress(i, press);
       GetCSMState(j, u);
@@ -752,7 +767,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       area = nozzle_shape.Area(cfd_solver.get_x_coord());
       CalcYCoords(area, y_coords);
       csm_solver.GenerateMesh(cfd_solver.get_x_coord(), y_coords);      
-      press *= p_ref_;
+      press *= p_ref;
       press -= press_stag;
       csm_solver.set_press(press);
       csm_solver.set_u(u);
@@ -766,8 +781,8 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       GetBsplinePts(k, pts);
       u_area = nozzle_shape.AreaForwardDerivative(cfd_solver.get_x_coord(),
                                                   pts);
-      u_area /= -(2.0*w); // multiply dy/dA *(dA/db * u_pts)
-      CalcFD_dSdy_Product(u_area, v_cfd); // multiply dS/dy *(dy/db * u_pts)
+      u_area /= -(2.0*width); // multiply dy/dA *(dA/db * u_pts)
+      csm_solver.CalcFD_dSdy_Product(u_area, v_cfd); // dS/dy *(dy/db * u_pts)
       v_csm += v_cfd;
       SetCSMState(m, v_csm);
       break;
@@ -827,7 +842,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       // Evaluate the CSM part of the transposed-Jacobian-vec product
       InnerProdVector pts(num_bspline, 0.0), press(nodes, 0.0),
           y_coords(nodes, 0.0), u(num_dis_var, 0.0), v_press(nodes, 0.0),
-          v_pts(num_bspline, 0.0), v_area(nodes, 0.0);
+          v_pts(num_bspline, 0.0);
       GetBsplinePts(i, pts);
       GetCouplingPress(i, press);
       GetCSMState(j, u);
@@ -835,7 +850,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       area = nozzle_shape.Area(cfd_solver.get_x_coord());
       CalcYCoords(area, y_coords);
       csm_solver.GenerateMesh(cfd_solver.get_x_coord(), y_coords);      
-      press *= p_ref_;
+      press *= p_ref;
       press -= press_stag;
       csm_solver.set_press(press);
       csm_solver.set_u(u);
@@ -847,8 +862,8 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       SetCouplingPress(m, v_press);
 
       // second part: (dS/d(pts))^T * u_csm
-      CalcTransFD_dSdy_Product(u, v_area); // (dS/dy)^T * u_csm
-      v_area /= -(2.0*w); // (dy/dA)^T * (dS/dy)^T * u_csm
+      csm_solver.CalcTransFD_dSdy_Product(u, v_area); // (dS/dy)^T * u_csm
+      v_area /= -(2.0*width); // (dy/dA)^T * (dS/dy)^T * u_csm
       v_pts = nozzle_shape.AreaReverseDerivative(
           cfd_solver.get_x_coord(), v_area); // (dA/db)^T * (dy/dA)^T ...
       SetBsplinePts(m, v_pts);
@@ -921,7 +936,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       SetCFDState(m, v_cfd);
       // Apply the CSM preconditioner
       InnerProdVector pts(num_bspline, 0.0), y_coords(nodes, 0.0),
-          u_csm(num_dis_var, 0.0);
+          u_csm(num_dis_var, 0.0), area(nodes, 0.0);
       GetBsplinePts(i, pts);
       nozzle_shape.SetCoeff(pts);
       area = nozzle_shape.Area(cfd_solver.get_x_coord());
@@ -949,7 +964,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       SetCFDState(m, v_cfd);
       // Apply the transposed CSM preconditioner
       InnerProdVector pts(num_bspline, 0.0), y_coords(nodes, 0.0),
-          u_csm(num_dis_var, 0.0);
+          area(nodes, 0.0), u_csm(num_dis_var, 0.0);
       GetBsplinePts(i, pts);
       nozzle_shape.SetCoeff(pts);
       area = nozzle_shape.Area(cfd_solver.get_x_coord());
@@ -1058,7 +1073,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       // component corresponding to (area - area_coupling)
       InnerProdVector u_area(nodes, 0.0), v_csm(num_dis_var, 0.0);
       GetAreaCnstr(k, u_area);
-      CalcDAreaDydispTrans(u_area, v_csm);
+      CalcDAreaDYdispTrans(u_area, v_csm);
       SetCSMState(m, v_csm);
       break;        
     }       
@@ -1145,14 +1160,15 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       iwrk[0] = cfd_solver.NewtonKrylov(20, 1.e-10);
       SetCFDState(j, cfd_solver.get_q());
       // Solve the CSM
-      InnerProdVector press(nodes, 0.0), pts(num_bspline, 0.0);
+      InnerProdVector press(nodes, 0.0), pts(num_bspline, 0.0),
+          y_coords(nodes, 0.0);
       GetBsplinePts(i, pts);
       GetCouplingPress(i, press);
       nozzle_shape.SetCoeff(pts);
       area = nozzle_shape.Area(cfd_solver.get_x_coord());
       CalcYCoords(area, y_coords);
       csm_solver.GenerateMesh(cfd_solver.get_x_coord(), y_coords);
-      press *= p_ref_;
+      press *= p_ref;
       press -= press_stag;
       csm_solver.set_press(press);
       csm_solver.Solve();

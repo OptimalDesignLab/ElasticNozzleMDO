@@ -80,6 +80,11 @@ public:
   void set_u(const InnerProdVector & u_new) { u_ = u_new; }
 
   /*!
+   * \brief extract the pressure from the cfd solver
+   */
+  const InnerProdVector & get_press() { return cfd_.get_press(); }
+  
+  /*!
    * \brief updates the discipline geometries based on the MDA nozzle object
    */
   void UpdateFromNozzle();
@@ -97,13 +102,16 @@ public:
   /*!
    * \brief sets up the CFD solver for the MDA evaluation
    */
-  void InitializeCFD(InnerProdVector & x_coords, InnerProdVector & area);
+  void InitializeCFD(const InnerProdVector & x_coords,
+                     const InnerProdVector & area);
 
   /*!
    * \brief sets up the CSM solver for the MDA evaluation
    */
-  void InitializeCSM(InnerProdVector & x_coords, InnerProdVector & y_coords,
-                     InnerProdVector & BCtype, InnerProdVector & BCval,
+  void InitializeCSM(const InnerProdVector & x_coords,
+                     const InnerProdVector & y_coords,
+                     const InnerProdVector & BCtype,
+                     const InnerProdVector & BCval,
                      double E, double t, double w, double h);
 
   /*!

@@ -31,16 +31,19 @@ ALL_CXXFLAGS= -I. $(CXXFLAGS) -I $(BOOST_ROOT) -I $(KONA_ROOT)/src
 # directories
 CFD_DIR=../quasi_1d_euler
 CSM_DIR=../linear_elastic_csm
+MDA_DIR=..
 
 # headers
 CFD_HEADERS= $(wildcard $(CFD_DIR)/*.hpp)
 CSM_HEADERS= $(wildcard $(CSM_DIR)/*.hpp)
-HEADERS_ALL= $(CFD_HEADERS) $(CSM_HEADERS)
+MDA_HEADERS= $(wildcard $(MDA_DIR)/*.hpp)
+HEADERS_ALL= $(CFD_HEADERS) $(CSM_HEADERS) $(MDA_HEADERS)
 
 # source files
 CFD_SOURCES= $(wildcard $(CFD_DIR)/*.cpp)
 CSM_SOURCES= $(wildcard $(CSM_DIR)/*.cpp)
-SOURCES_ALL= $(CFD_SOURCES) $(CSM_SOURCES)
+MDA_SOURCES= $(wildcard $(MDA_DIR)/*.cpp)
+SOURCES_ALL= $(CFD_SOURCES) $(CSM_SOURCES) $(MDA_SOURCES)
 
 # object files
 OBJS_ALL= $(SOURCES_ALL:.cpp=.o)
