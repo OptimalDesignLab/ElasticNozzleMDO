@@ -640,6 +640,15 @@ void AeroStructMDA::AeroStructDesignTransProduct(InnerProdVector & in, InnerProd
   out += wrk1;
 }
 
+double AeroStructMDA::CalcInverseDesign()
+{
+  InnerProdVector u_cfd(3*num_nodes_, 0.0);
+  for (int i=0; i<3*num_nodes_; i++)
+    u_cfd(i) = u_(i);
+  cfd_.set_q(u_cfd);
+  double out = cfd_.CalcInverseDesign();
+}
+
 // ======================================================================
 
 void AeroStructProduct::operator()(const InnerProdVector & u, 
