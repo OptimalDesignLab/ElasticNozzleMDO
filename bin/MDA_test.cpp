@@ -6,7 +6,7 @@
  */
 
 #include <stdio.h>
-#include "./aerostruct.hpp"
+#include "../aerostruct.hpp"
 using namespace std;
 
 // =====================================================================

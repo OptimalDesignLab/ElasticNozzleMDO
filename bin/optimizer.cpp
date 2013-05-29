@@ -17,7 +17,7 @@
 #include <kona.hpp>
 #include <boost/math/constants/constants.hpp>
 
-#include "./aerostruct.hpp"
+#include "../aerostruct.hpp"
 
 using std::cout;
 using std::cerr;
@@ -36,19 +36,19 @@ static vector<InnerProdVector> design;    // design vectors
 static vector<InnerProdVector> state;     // state vectors
 
 // domain parameters
-static const double length = 1.0;
+static const double length = 5.0;
+static const double height = 1.6;
+static const double width = 1.6;
 static const double x_min = 0.0;
 static const double x_max = x_min + length;
 
 // discretization parameters
 static const int nodes = 201;
-static const int num_var = 3*nodes;
+static const int num_var = 6*nodes;
 static const int order = 3;
 
-static AeroStructMDA solver(nodes, order);
 static BsplineNozzle nozzle_shape;
-
-#if 0
+static AeroStructMDA solver(nodes, order, nozzle_shape);
 
 // forward declerations
 int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
@@ -58,30 +58,72 @@ double MeshCoord(const double & length, const int & num_nodes,
 
 // ======================================================================
 
-int main(int argc, char *argv[]) 
+int main(int argc, char *argv[])
 {
-	// create uniform spaced x coordinates
+	// define the nodal coordinates of the nozzle (done ONCE)
 	InnerProdVector x_coord(nodes, 0.0);
-  for (int i = 0; i < nodes; i++)
+	InnerProdVector y_coord(nodes, 0.0);
+  for (int i = 0; i < nodes; i++) {
+  	// create uniform spaced x coordinates
     x_coord(i) = MeshCoord(length, nodes, i);
+    // linearly varying y coordinates
+    y_coord(i) = (0.3/length)*x_coord(i);
+  }
 
-  // define Bspline nozzle (???)
+  // define the Bspline for the nozzle
+  double area_left = width*(height - (2*y_coord(0)));
+  double area_right = width*(height - (2*y_coord(nodes-1)));
+  nozzle_shape.FitNozzle(x_coord, y_coord);
+  nozzle_shape.SetAreaAtEnds(area_left, area_right);
 
-  // query Bspline for y coordinates corresponding to each x
+  // query Bspline for nodal areas corresponding to each x
+  InnerProdVector area = nozzle_shape.Area(x_coord);
 
-  // calculate nodal areas based on y coordinates
-
-  // initialize the CFD discipline
+  // calculate the y coordinates based on the nodal areas
+  for (int i = 0; i < nodes; i++)
+  	y_coord(i) = 0.5*(height - (area(i)/width));  
 
   // define material properties
+  double E = 100000000;   // Young's modulus
+  double thick = 0.01;        // fixed beam element thickness
 
   // define CSM nodal degrees of freedom
+  InnerProdVector BCtype(3*nodes, 0.0);
+  InnerProdVector BCval(3*nodes, 0.0);
+  for (int i=0; i<nodes; i++) {
+    BCtype(3*i) = 0; //-1;
+    BCtype(3*i+1) = -1;
+    BCtype(3*i+2) = -1;
+    BCval(3*i) = 0;
+    BCval(3*i+1) = 0;
+    BCval(3*i+2) = 0;
+  }
+  BCtype(0) = 0;
+  BCtype(1) = 0;
+  BCtype(2) = -1;
+  BCtype(3*nodes-3) = 0;
+  BCtype(3*nodes-2) = 0;
+  BCtype(3*nodes-1) = -1;
 
-  // initialize the CSM discipline
+  // initialize the solver disciplines
+  solver.InitializeCFD(x_coord, area);
+  solver.InitializeCSM(x_coord, y_coord, BCtype, BCval, E, thick, width, height);
+  int num_design_vars = 10; // NEED TO GET THIS FROM THE BSPLINE...HOW?
+  solver.SetDesignVars(num_design_vars);
 
-  // KonaOptimize (magic!)
+  // run the optimizer
+  map<string,string> optns;
+  KonaOptimize(userFunc, optns);
+  int solver_precond_calls = 0;
+  int kona_precond_calls = 0;;
+    
+  cout << "Total solver precond calls: " << solver_precond_calls << endl;
+  cout << "Total Kona precond calls:   " << kona_precond_calls << endl;
+  cout << "Ratio of precond calls:     " 
+       << ( static_cast<double>(kona_precond_calls)
+            /static_cast<double>(solver_precond_calls) ) << endl;
 
-  // plot results
+  // plot results?
 }
 
 // ======================================================================
@@ -100,7 +142,7 @@ double MeshCoord(const double & length, const int & num_nodes,
 // ======================================================================
 
 int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
-	     double *dwrk) 
+	     double *dwrk)
 {
   static int opt_iter = 0;
   switch (request) {
@@ -113,7 +155,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
           throw(-1);
         }
         design.clear();
-      }        
+      }
       if (num_state_vec >= 0) { // free state memory first
         if (state.size() == 0) {
           cerr << "userFunc: "
@@ -128,7 +170,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       assert(num_state_vec >= 0);
       design.resize(num_design_vec);
       for (int i = 0; i < num_design_vec; i++)
-        design[i].resize(num_design);
+        design[i].resize(num_design_vec);
       state.resize(num_state_vec);
       for (int i = 0; i < num_state_vec; i++)
         state[i].resize(num_var);
@@ -142,18 +184,18 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
 	    assert((i >= 0) && (i < num_design_vec));
 	    assert(j < num_design_vec);
 	    assert(k < num_design_vec);
-	    
+
 	    double scalj = dwrk[0];
 	    double scalk = dwrk[1];
 	    if (j == -1) {
 	      if (k == -1) { // if both indices = -1, then all elements = scalj
 	        design[i] = scalj;
-	        
+
 	      } else { // if just j = -1 ...
 	        if (scalk == 1.0) {
 	          // direct copy of vector k with no scaling
 	          design[i] = design[k];
-	          
+
 	        } else {
 	          // scaled copy of vector k
 	          design[i] = design[k];
@@ -164,7 +206,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
 	      if (scalj == 1.0) {
 	        // direct copy of vector j with no scaling
 	        design[i] = design[j];
-	        
+
 	      } else {
 	        // scaled copy of vector j
 	        design[i] = design[j];
@@ -224,7 +266,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
 	    assert((j >= 0) && (j < num_design_vec));
 	    dwrk[0] = InnerProd(design[i], design[j]);
 	    break;
-	  } 
+	  }
 	  case kona::innerprod_s: {// using state array set
 	    // dwrk[0] = (iwrk[0])^{T} * iwrk[1]
 	    int i = iwrk[0];
@@ -235,8 +277,12 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
 	    break;
 	  }
 	  case kona::eval_obj: {// evaluate the objective
+	  	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	  	// THIS NEEDS ATTENTION
+	  	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#if 0
 	    int i = iwrk[0];
-	    int j = iwrk[1];      
+	    int j = iwrk[1];
 	    assert((i >= 0) && (i < num_design_vec));
 	    assert((j >= -1) && (j < num_state_vec));
 	    nozzle_shape.SetCoeff(design[i]);
@@ -247,9 +293,10 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
 	      iwrk[0] = solver.NewtonKrylov(100, 1.e-6);
 	    } else {
 	      iwrk[0] = 0; // no precondition calls
-	      solver.set_q(state[j]);
+	      solver.set_u(state[j]);
 	    }
 	    dwrk[0] = solver.CalcInverseDesign();
+#endif
 	    break;
 	  }
 	  case kona::eval_pde: {// evaluate PDE at (design,state) =
@@ -260,9 +307,9 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
 	    assert((i >= 0) && (i < num_design_vec));
 	    assert((j >= 0) && (j < num_state_vec));
 	    assert((k >= 0) && (k < num_state_vec));
-	    nozzle_shape.SetCoeff(design[i]);
-	    solver.set_area(nozzle_shape.Area(solver.get_x_coord()));
-	    solver.set_solution_vec(state[j]);
+	    nozzle_shape.SetCoeff(design[i]);	 // update nozzle design
+	    solver.UpdateFromNozzle();	// cascade the design update into the solver
+	    solver.set_u(state[j]);	 // set solver state vars at which residual is calculated
 	    solver.CalcResidual();
 	    state[k] = solver.get_res();
 	    break;
@@ -277,13 +324,9 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
 	    assert((k >= 0) && (k < num_design_vec));
 	    assert((m >= 0) && (m < num_state_vec));
 	    nozzle_shape.SetCoeff(design[i]);
-	    solver.set_area(nozzle_shape.Area(solver.get_x_coord()));
-	    solver.set_q(state[j]);
-
-	    InnerProdVector dArea(num_design, 0.0);
-	    dArea = nozzle_shape.AreaForwardDerivative(solver.get_x_coord(),
-	                                               design[k]);
-	    solver.JacobianAreaProduct(dArea, state[m]);
+	    solver.UpdateFromNozzle();
+	    solver.set_u(state[j]);
+	    solver.AeroStructDesignProduct(design[k], state[m]);
 	    break;
 	  }
 	  case kona::jacvec_s: {// apply state component of the Jacobian-vector
@@ -298,12 +341,17 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
 	    assert((k >= 0) && (k < num_state_vec));
 	    assert((m >= 0) && (m < num_state_vec));
 	    nozzle_shape.SetCoeff(design[i]);
-	    solver.set_area(nozzle_shape.Area(solver.get_x_coord()));
-	    solver.set_q(state[j]);
-	    solver.JacobianStateProduct(state[k], state[m]);
+	    solver.UpdateFromNozzle();
+	    solver.set_u(state[j]);
+	    kona::MatrixVectorProduct<InnerProdVector>* 
+      mat_vec = new AeroStructProduct((&solver));  
+  			(*mat_vec)(state[k], state[m]);
 	    break;
 	  }
 	  case kona::tjacvec_d: {// apply design component of Jacobian to adj
+	  	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	  	// AeroStructDesignTransProduct() needs review!
+	  	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	    int i = iwrk[0];
 	    int j = iwrk[1];
 	    int k = iwrk[2];
@@ -313,13 +361,9 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
 	    assert((k >= 0) && (k < num_state_vec));
 	    assert((m >= 0) && (m < num_design_vec));
 	    nozzle_shape.SetCoeff(design[i]);
-	    solver.set_area(nozzle_shape.Area(solver.get_x_coord()));
-	    solver.set_q(state[j]);
-
-	    InnerProdVector dArea(nodes, 0.0);
-	    solver.JacobianTransposedAreaProduct(state[k], dArea);
-	    design[m] = nozzle_shape.AreaReverseDerivative(
-	        solver.get_x_coord(), dArea);
+	    solver.UpdateFromNozzle();
+	    solver.set_u(state[j]);
+	    solver.AeroStructDesignTransProduct(state[k], design[m]);
 	    break;
 	  }
 	  case kona::tjacvec_s: {// apply state component of Jacobian to adj
@@ -332,12 +376,18 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
 	    assert((k >= 0) && (k < num_state_vec));
 	    assert((m >= 0) && (m < num_state_vec));
 	    nozzle_shape.SetCoeff(design[i]);
-	    solver.set_area(nozzle_shape.Area(solver.get_x_coord()));
-	    solver.set_q(state[j]);
-	    solver.JacobianTransposedStateProduct(state[k], state[m]);
+	    solver.UpdateFromNozzle();
+	    solver.set_u(state[j]);
+	    kona::MatrixVectorProduct<InnerProdVector>* 
+      mat_vec = new AeroStructTransposeProduct((&solver));
+  			(*mat_vec)(state[k], state[m]);
 	    break;
 	  }
 	  case kona::eval_precond: {// build the preconditioner if necessary
+#if 0
+			// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	  	// NOT CONVINCED THIS IS NECESSARY
+	  	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	    int i = iwrk[0];
 	    int j = iwrk[1];
 	    assert((i >= 0) && (i < num_design_vec));
@@ -347,7 +397,8 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
 	    solver.set_q(state[j]);
 	    solver.BuildAndFactorPreconditioner();
 	    break;
-	  } 
+#endif
+	  }
 	  case kona::precond_s: {// apply primal preconditioner to iwrk[2]
 	    // recall; iwrk[0], iwrk[1] denote where preconditioner is
 	    // evaluated and in this case, they are not needed
@@ -359,7 +410,9 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
 	    assert((j >= 0) && (j < num_state_vec));
 	    assert((k >= 0) && (k < num_state_vec));
 	    assert((m >= 0) && (m < num_state_vec));
-	    solver.Precondition(state[k], state[m]);
+	    kona::Preconditioner<InnerProdVector>* 
+      mat_vec = new AeroStructPrecond((&solver));
+  			(*mat_vec)(state[k], state[m]);
 	    iwrk[0] = 1; // one preconditioner application
 	    break;
 	  }
@@ -372,7 +425,9 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
 	    assert((j >= 0) && (j < num_state_vec));
 	    assert((k >= 0) && (k < num_state_vec));
 	    assert((m >= 0) && (m < num_state_vec));
-	    solver.PreconditionTransposed(state[k], state[m]);
+	    kona::Preconditioner<InnerProdVector>* 
+      mat_vec = new AeroStructTransposePrecond((&solver));
+  			(*mat_vec)(state[k], state[m]);
 	    iwrk[0] = 1; // one preconditioner application
 	    break;
 	  }
@@ -394,12 +449,11 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
 	    assert((j >= 0) && (j < num_state_vec));
 	    assert((k >= 0) && (k < num_state_vec));
 	    nozzle_shape.SetCoeff(design[i]);
-	    solver.set_area(nozzle_shape.Area(solver.get_x_coord()));
-	    solver.set_q(state[j]);
-	    solver.CalcInverseDesigndJdQ(state[k]);
+	    solver.UpdateFromNozzle();
+	    solver.set_u(state[j]);
+	    // solver.CalcInverseDesigndJdQ(state[k]);
 	    //cout << "dJdQ.Norm2() = " << state[k].Norm2() << endl;
 	    break;
 	  }
 	}
 }
-#endif

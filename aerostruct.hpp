@@ -67,12 +67,22 @@ public:
   /*!
    * \brief extract the MDA solution vector
    */
-  const InnerProdVector & get_u() const { return u_; }
+  InnerProdVector & get_u() { return u_; }
+
+  /*!
+   * \brief extract the MDA residual vector
+   */
+  InnerProdVector & get_res() { return v_; }
   
   /*!
    * \brief define the MDA solution vector
    */
   void set_u(const InnerProdVector & u_new) { u_ = u_new; }
+
+  /*!
+   * \brief updates the discipline geometries based on the MDA nozzle object
+   */
+  void UpdateFromNozzle();
   
   /*!
    * \brief defines a sample Bspline-free MDA test problem
@@ -167,39 +177,51 @@ public:
   void SetDesignVars(int num) { num_design_ = num; }
 
   /*!
-   * \brief calculates (dR/dx)*vector product
+   * \brief calculates (dR/dB)*vector product
    * \param[in] in - multiplied vector (num_design_)
-   * \param[out] out - resultant vector (3*num_nodes_)
+   * \param[out] out - resultant vector (6*num_nodes_)
    */
-  void Calc_dRdx_Product(InnerProdVector & in, InnerProdVector & out);
+  void Calc_dRdB_Product(InnerProdVector & in, InnerProdVector & out);
 
   /*!
-   * \brief calculates (dR/dx)^T *vector product
-   * \param[in] in - multiplied vector (3*num_nodes)
+   * \brief calculates (dR/dB)^T *vector product
+   * \param[in] in - multiplied vector (6*num_nodes)
    * \param[out] out - resultant vector (num_design_)
    */
-  void CalcTrans_dRdx_Product(InnerProdVector & in, InnerProdVector & out);
+  void CalcTrans_dRdB_Product(InnerProdVector & in, InnerProdVector & out);
 
   /*!
-   * \brief calculates (dS/dx)*vector product
+   * \brief calculates (dS/dB)*vector product
    * \param[in] in - multiplied vector (num_design_)
-   * \param[out] out - resultant vector (3*num_nodes_)
+   * \param[out] out - resultant vector (6*num_nodes_)
    */
-  void Calc_dSdx_Product(InnerProdVector & in, InnerProdVector & out);
+  void Calc_dSdB_Product(InnerProdVector & in, InnerProdVector & out);
 
   /*!
-   * \brief calculates (dS/dx)^T *vector product
-   * \param[in] in - multiplied vector (3*num_nodes_)
+   * \brief calculates (dS/dB)^T *vector product
+   * \param[in] in - multiplied vector (6*num_nodes_)
    * \param[out] out - resultant vector (num_design_)
    */
-  void CalcTrans_dSdx_Product(InnerProdVector & in, InnerProdVector & out);
+  void CalcTrans_dSdB_Product(InnerProdVector & in, InnerProdVector & out);
 
   /*!
-   * \brief calculates (dR/dx)*vector product
+   * \brief calculates [dR/dB; dSdB]*vector product
    * \param[in] in - multiplied vector (num_design_)
-   * \param[out] out - resultant vector (3*num_nodes_)
+   * \param[out] out - resultant vector (6*num_nodes_)
    */
   void AeroStructDesignProduct(InnerProdVector & in, InnerProdVector & out);
+
+  /*!
+   * \brief calculates [dR/dB; dSdB]^T *vector product
+   * \param[in] in - multiplied vector (6*num_nodes_)
+   * \param[out] out - resultant vector (num_design_)
+   */
+  void AeroStructDesignTransProduct(InnerProdVector & in, InnerProdVector & out);
+
+#if 0
+  void CalcInverseDesignJdQ(InnerProdVector & state)
+    { cfd_.CalcInverseDesignJdQ(state); }
+#endif
 
 // ======================================================================
 
@@ -209,9 +231,11 @@ public:
   LECSM csm_; ///< used to access linear_elastic_csm routines
   double scale_cfd_; ///< used to scale linearized cfd equations
   double scale_csm_; ///< used to scale linearized csm equations
-  InnerProdVector u_;
-  InnerProdVector v_;
-  int num_nodes_, order_, num_design_;
+  double l_, h_, w_; ///< geometric domain length, height and width
+  double E_, t_; ///< material properties
+  InnerProdVector u_; ///< MDA solution vector
+  InnerProdVector v_; ///< MDA residual vector
+  int num_nodes_, order_, num_design_; ///< MDA discretization properties
   double p_ref_; ///< reference pressure for dimensionalization
 
   friend class AeroStructProduct;
