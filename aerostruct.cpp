@@ -52,6 +52,8 @@ void AeroStructMDA::UpdateFromNozzle()
 
   // update solver properties
   cfd_.set_area(area);
+  csm_.set_coords(x_coord, y_coord);
+  csm_.UpdateMesh();
 }
 
 // ======================================================================
