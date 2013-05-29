@@ -280,23 +280,21 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
 	  	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	  	// THIS NEEDS ATTENTION
 	  	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#if 0
 	    int i = iwrk[0];
 	    int j = iwrk[1];
 	    assert((i >= 0) && (i < num_design_vec));
 	    assert((j >= -1) && (j < num_state_vec));
 	    nozzle_shape.SetCoeff(design[i]);
-	    solver.set_area(nozzle_shape.Area(solver.get_x_coord()));
+	    solver.UpdateFromNozzle();
 	    if (j == -1) {
 	      // need to solve for the state first
-	solver.InitialCondition(rho_R, rho_u_R, e_R);
+				// solver.InitialCondition(rho_R, rho_u_R, e_R);
 	      iwrk[0] = solver.NewtonKrylov(100, 1.e-6);
 	    } else {
 	      iwrk[0] = 0; // no precondition calls
 	      solver.set_u(state[j]);
 	    }
 	    dwrk[0] = solver.CalcInverseDesign();
-#endif
 	    break;
 	  }
 	  case kona::eval_pde: {// evaluate PDE at (design,state) =
@@ -451,7 +449,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
 	    nozzle_shape.SetCoeff(design[i]);
 	    solver.UpdateFromNozzle();
 	    solver.set_u(state[j]);
-	    // solver.CalcInverseDesigndJdQ(state[k]);
+	    solver.CalcInverseDesigndJdQ(state[k]);
 	    //cout << "dJdQ.Norm2() = " << state[k].Norm2() << endl;
 	    break;
 	  }

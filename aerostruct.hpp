@@ -218,10 +218,10 @@ public:
    */
   void AeroStructDesignTransProduct(InnerProdVector & in, InnerProdVector & out);
 
-#if 0
-  void CalcInverseDesignJdQ(InnerProdVector & state)
-    { cfd_.CalcInverseDesignJdQ(state); }
-#endif
+  double CalcInverseDesign();
+
+  void CalcInverseDesigndJdQ(InnerProdVector & dJdQ)
+    { cfd_.CalcInverseDesigndJdQ(dJdQ); }
 
 // ======================================================================
 
