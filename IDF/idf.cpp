@@ -126,6 +126,7 @@ int main(int argc, char *argv[]) {
     cerr << "Error in design: expect exactly one command line variable "
          << "(number of B-spline control points defining nozzle area)"
          << endl;
+    throw(-1);
   } else {
     num_bspline = atoi(argv[1]);
     num_design = num_bspline + 2*nodes;

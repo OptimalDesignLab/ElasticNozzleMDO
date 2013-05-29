@@ -83,6 +83,16 @@ public:
    * \brief extract the pressure from the cfd solver
    */
   const InnerProdVector & get_press() { return cfd_.get_press(); }
+
+  /*!
+   * \brief uses the MDA state in u_ to update the cfd and csm states
+   */
+  void UpdateDisciplineStates();
+  
+  /*!
+   * \brief defines the target pressure based on current pressure in cfd_
+   */
+  void CopyPressIntoTarget() { cfd_.set_press_targ(cfd_.get_press()); }
   
   /*!
    * \brief updates the discipline geometries based on the MDA nozzle object
@@ -131,6 +141,8 @@ public:
    * \param[in,out] u - vector to be scaled
    */
   void ScaleVector(InnerProdVector & u);
+
+  void BuildAndFactorPreconditioner();
   
   /*!
    * \brief solves the aero-structural system with a Newton Krylow algorithm
@@ -228,8 +240,7 @@ public:
 
   double CalcInverseDesign();
 
-  void CalcInverseDesigndJdQ(InnerProdVector & dJdQ)
-    { cfd_.CalcInverseDesigndJdQ(dJdQ); }
+  void CalcInverseDesigndJdQ(InnerProdVector & dJdQ);
 
 // ======================================================================
 
