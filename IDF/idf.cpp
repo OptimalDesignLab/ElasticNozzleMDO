@@ -1214,10 +1214,15 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       int i = iwrk[0];
       int j = iwrk[1];
       int k = iwrk[2];
-      int iter = iwrk[3];
+      int m = iwrk[3];
+      int iter = iwrk[4];
       InnerProdVector pts(num_bspline, 0.0);
       GetBsplinePts(i, pts);
       nozzle_shape.SetCoeff(pts);
+
+      
+      cfd_solver.WriteTecplot(1.0, 1.0);
+      
 
 #if 0
       // uncomment to list B-spline coefficients
@@ -1231,17 +1236,15 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       cout << "total preconditioner calls (cfd_solver says) = " 
            << cfd_solver.TotalPreconditionerCalls() << endl;
 #endif
-
-#if 0
+      
       string filename("flow_at_opt_iter");
       std::stringstream ss;
       ss << opt_iter;
       filename.append(ss.str());
       filename.append(".dat");
-      //cfd_solver.WriteTecplot(rho_ref, a_ref, filename);
       cfd_solver.WriteTecplot(1.0, 1.0, filename);
       opt_iter++;
-#endif
+
       break;
     }
     default: {
