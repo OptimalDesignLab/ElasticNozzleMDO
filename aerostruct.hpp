@@ -184,8 +184,8 @@ public:
    * \brief generates a .dat file for the solution, to be plotted with plot_nozzle.py
    * \pre must have solved, final nodal areas assigned to the CFD solver
    */
-  void GetTecplot(const double & rho_ref, const double & a_ref)
-  { cfd_.WriteTecplot(rho_ref, a_ref); }
+  void GetTecplot(const double & rho_ref, const double & a_ref, const string & filename)
+  { cfd_.WriteTecplot(rho_ref, a_ref, filename); }
 
 // ======================================================================
 // OPTIMIZATION ROUTINES
