@@ -20,7 +20,7 @@ const double y_left = 0.5*(height - area_left/width);
 const double y_right = 0.5*(height - area_right/width);
 
 // discretization parameters
-const int nodes = 21;
+const int nodes = 41;
 
 // CFD discretization parameters
 const int order = 3;
@@ -34,7 +34,7 @@ const double kPressStag = 100000;
 const double kRGas = 287.0;
 
 // CSM material parameters
-const double E = 1.e6; //1.e9;   // Young's modulus
+const double E = 1.e7; //1.e9;   // Young's modulus
 const double thick = 0.01; //0.01;        // fixed beam element thickness
 
 // tolerances for primal and adjoint problems

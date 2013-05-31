@@ -10,6 +10,7 @@ label_fs = 10 # axis labels' font size
 
 # get data to plot
 data = open('./quasi1d.dat', 'r')
+#data = open('./quasi1d.dat', 'r')
 [x, A, rho, rhou, e, p, p_targ, u, Mach, Mach_exact] = \
   np.loadtxt(data, skiprows=3, unpack=True)
 
