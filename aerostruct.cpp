@@ -50,26 +50,7 @@ void AeroStructMDA::UpdateDisciplineStates() {
 
 // ======================================================================
 
-void AeroStructMDA::UpdateFromNozzle()
-{
-  // evenly spaced x-coordinates along the length of nozzle
-  InnerProdVector x_coord(num_nodes_, 0.0);
-  for (int i = 0; i < num_nodes_; i++)
-    x_coord(i) = static_cast<double>(i)*length/static_cast<double>(num_nodes_-1);
-
-  // query the nozzle object for nodal areas
-  InnerProdVector area = nozzle_->Area(x_coord);
-
-  // reverse-calculate y-coordinates from the nodal areas
-  InnerProdVector y_coord(num_nodes_, 0.0);
-  for (int i = 0; i < num_nodes_; i++)
-    y_coord(i) = (height/2) - (area(i)/(2*width));
-
-  // update solver properties
-  cfd_.set_area(area);
-  csm_.set_coords(x_coord, y_coord);
-  csm_.UpdateMesh();
-
+void AeroStructMDA::SetInitialCondition() {
   // set initial condition in CFD
   double rho, rho_u, e;
   CalcFlowExact(kGamma, kRGas, kAreaStar, area_left, true, 
@@ -91,7 +72,32 @@ void AeroStructMDA::UpdateFromNozzle()
     u_(3*i) = rho_R;
     u_(3*i+1) = rho_u_R;
     u_(3*i+2) = e_R;
-  }  
+  }
+  UpdateDisciplineStates();  
+}
+
+// ======================================================================
+
+void AeroStructMDA::UpdateFromNozzle()
+{
+  // evenly spaced x-coordinates along the length of nozzle
+  InnerProdVector x_coord(num_nodes_, 0.0);
+  for (int i = 0; i < num_nodes_; i++)
+    x_coord(i) = static_cast<double>(i)*length/static_cast<double>(num_nodes_-1);
+
+  // query the nozzle object for nodal areas
+  InnerProdVector area = nozzle_->Area(x_coord);
+
+  // reverse-calculate y-coordinates from the nodal areas
+  InnerProdVector y_coord(num_nodes_, 0.0);
+  for (int i = 0; i < num_nodes_; i++)
+    y_coord(i) = (height/2) - (area(i)/(2*width));
+
+  // update solver properties
+  csm_.set_coords(x_coord, y_coord);
+  csm_.UpdateMesh();
+  csm_.CalcCoordsAndArea();
+  cfd_.set_area(csm_.get_area()); 
 }
 
 // ======================================================================
@@ -99,10 +105,10 @@ void AeroStructMDA::UpdateFromNozzle()
 void AeroStructMDA::InitializeTestProb()
 {
   // set material properties for CSM
-  double E = 100000000;   // Young's modulus
-  double w = 1.0;           // fixed width of nozzle
-  double t = 0.01;        // fixed beam element thickness
-  double h = 2;           // max height of the nozzle
+  //double E = 100000000;   // Young's modulus
+  double w = width; //1.0;           // fixed width of nozzle
+  double t = thick; //0.01;        // fixed beam element thickness
+  double h = height; //2;           // max height of the nozzle
 
   // start defining the nozzle
   double length = 1.0;
@@ -649,7 +655,14 @@ void AeroStructMDA::Calc_dSdB_Product(InnerProdVector & in, InnerProdVector & ou
   wrk1 = nozzle_->AreaForwardDerivative(cfd_.get_x_coord(), in);     // (dA/dB)*in
   InnerProdVector wrk2(num_nodes_, 0.0);
   csm_.Calc_dydA_Product(wrk1, wrk2);           // (dy/dA)*(dA/dB)*in
-  csm_.CalcFD_dSdy_Product(wrk2, out);          // (dS/dy)*(dy/dA)*(dA/dB)*in
+  csm_.CalcCmplx_dSdy_Product(wrk2, out);          // (dS/dy)*(dy/dA)*(dA/dB)*in
+#if 0  
+  InnerProdVector out_tmp(3*num_nodes_, 0.0);
+  csm_.CalcFD_dSdy_Product(wrk2, out_tmp);
+  cout << "dSdy*u difference:" << endl;
+  for (int i = 0; i < 3*num_nodes_; i++)
+    cout << "\t" << out(i) << ": " << out_tmp(i) << endl;
+#endif
 }
 
 void AeroStructMDA::CalcTrans_dSdB_Product(InnerProdVector & in, InnerProdVector & out)
@@ -659,7 +672,7 @@ void AeroStructMDA::CalcTrans_dSdB_Product(InnerProdVector & in, InnerProdVector
   for (int i = 0; i < num_nodes_; i++)
     wrk1(i) = in(3*i+1); // extract y-coordinate locations from the input vector
 #endif
-  csm_.CalcTransFD_dSdy_Product(in, wrk1);      // (dS/dy)^T *in
+  csm_.CalcTransCmplx_dSdy_Product(in, wrk1);      // (dS/dy)^T *in
   InnerProdVector wrk2(num_nodes_, 0.0);
   csm_.Calc_dydA_Product(wrk1, wrk2);      // (dy/dA)^T *(dS/du)^T *in
   out = nozzle_->AreaReverseDerivative(cfd_.get_x_coord(), wrk2);    // (dA/dB)^T *(du/dA)^T *(dS/du)^T *in

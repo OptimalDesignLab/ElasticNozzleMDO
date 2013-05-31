@@ -328,11 +328,12 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       solver.UpdateFromNozzle();
       if (j == -1) {
         // need to solve for the state first
-        // solver.InitialCondition(rho_R, rho_u_R, e_R);
+        solver.SetInitialCondition();
         iwrk[0] = solver.NewtonKrylov(100, tol);
       } else {
         iwrk[0] = 0; // no precondition calls
         solver.set_u(state[j]);
+        solver.UpdateFromNozzle();
       }
       dwrk[0] = solver.CalcInverseDesign();
       break;
@@ -346,8 +347,9 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       assert((j >= 0) && (j < num_state_vec));
       assert((k >= 0) && (k < num_state_vec));
       nozzle_shape.SetCoeff(design[i]);	 // update nozzle design
-      solver.UpdateFromNozzle();	// cascade the design update into the solver
       solver.set_u(state[j]);	 // set solver state vars at which residual is calculated
+      solver.UpdateDisciplineStates();
+      solver.UpdateFromNozzle();	// cascade the design update into the solver
       solver.CalcResidual();
       state[k] = solver.get_res();
       break;
@@ -365,8 +367,9 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       assert((k >= 0) && (k < num_design_vec));
       assert((m >= 0) && (m < num_state_vec));
       nozzle_shape.SetCoeff(design[i]);
-      solver.UpdateFromNozzle();
       solver.set_u(state[j]);
+      solver.UpdateDisciplineStates();
+      solver.UpdateFromNozzle();
       solver.AeroStructDesignProduct(design[k], state[m]);
       break;
     }
@@ -382,9 +385,9 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       assert((k >= 0) && (k < num_state_vec));
       assert((m >= 0) && (m < num_state_vec));
       nozzle_shape.SetCoeff(design[i]);
-      solver.UpdateFromNozzle();
       solver.set_u(state[j]);
       solver.UpdateDisciplineStates();
+      solver.UpdateFromNozzle();
       kona::MatrixVectorProduct<InnerProdVector>* 
           mat_vec = new AeroStructProduct(&solver);  
       (*mat_vec)(state[k], state[m]);
@@ -404,9 +407,9 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       assert((k >= 0) && (k < num_state_vec));
       assert((m >= 0) && (m < num_design_vec));
       nozzle_shape.SetCoeff(design[i]);
-      solver.UpdateFromNozzle();
       solver.set_u(state[j]);
       solver.UpdateDisciplineStates();
+      solver.UpdateFromNozzle();
       solver.AeroStructDesignTransProduct(state[k], design[m]);
       break;
     }
@@ -420,9 +423,9 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       assert((k >= 0) && (k < num_state_vec));
       assert((m >= 0) && (m < num_state_vec));
       nozzle_shape.SetCoeff(design[i]);
-      solver.UpdateFromNozzle();
       solver.set_u(state[j]);
       solver.UpdateDisciplineStates();
+      solver.UpdateFromNozzle();
       kona::MatrixVectorProduct<InnerProdVector>* 
           mat_vec = new AeroStructTransposeProduct(&solver);
       (*mat_vec)(state[k], state[m]);
@@ -435,9 +438,9 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       assert((i >= 0) && (i < num_design_vec));
       assert((j >= 0) && (j < num_state_vec));
       nozzle_shape.SetCoeff(design[i]);
-      solver.UpdateFromNozzle();
       solver.set_u(state[j]);
       solver.UpdateDisciplineStates();
+      solver.UpdateFromNozzle();
       solver.BuildAndFactorPreconditioner();
       break;
     }
@@ -505,8 +508,9 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       assert((j >= 0) && (j < num_state_vec));
       assert((k >= 0) && (k < num_state_vec));
       nozzle_shape.SetCoeff(design[i]);
-      solver.UpdateFromNozzle();
       solver.set_u(state[j]);
+      solver.UpdateDisciplineStates();
+      solver.UpdateFromNozzle();
       solver.CalcInverseDesigndJdQ(state[k]);
       //cout << "dJdQ.Norm2() = " << state[k].Norm2() << endl;
       break;
@@ -546,6 +550,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       //solver.set_area(nozzle_shape.Area(solver.get_x_coord()));
       //solver.GetTecplot(1.0, 1.0);
       //solver.InitialCondition(rho_R, rho_u_R, e_R);
+      solver.SetInitialCondition();
       iwrk[0] = solver.NewtonKrylov(20, tol);
       state[j] = solver.get_u();
       break;
@@ -558,9 +563,9 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       assert((j >= 0) && (j < num_state_vec));
       assert((k >= 0) && (k < num_state_vec));
       nozzle_shape.SetCoeff(design[i]);
-      solver.UpdateFromNozzle();
       solver.set_u(state[j]);
       solver.UpdateDisciplineStates();
+      solver.UpdateFromNozzle();
       InnerProdVector dJdu(num_var, 0.0);
       solver.CalcInverseDesigndJdQ(dJdu);
       dJdu *= -1.0;

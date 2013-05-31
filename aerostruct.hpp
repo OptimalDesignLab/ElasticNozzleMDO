@@ -93,6 +93,11 @@ public:
    * \brief defines the target pressure based on current pressure in cfd_
    */
   void CopyPressIntoTarget() { cfd_.set_press_targ(cfd_.get_press()); }
+
+  /*!
+   * \brief set the CFD and CSM initial condition for an NK MDA solve
+   */
+  void SetInitialCondition();
   
   /*!
    * \brief updates the discipline geometries based on the MDA nozzle object

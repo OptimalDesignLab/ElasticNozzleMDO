@@ -791,7 +791,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
                                                   pts);
       //csm_solver.Calc_dydA_Product(u_area, u);
       u_area /= -(2.0*width); // multiply dy/dA *(dA/db * u_pts)
-      csm_solver.CalcFD_dSdy_Product(u_area, v_cfd); // dS/dy *(dy/db * u_pts)
+      csm_solver.CalcCmplx_dSdy_Product(u_area, v_cfd); // dS/dy *(dy/db * u_pts)
       v_csm += v_cfd;
       SetCSMState(m, v_csm);
       break;
@@ -873,7 +873,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       SetCouplingPress(m, v_press);
 
       // second part: (dS/d(pts))^T * u_csm
-      csm_solver.CalcTransFD_dSdy_Product(u, v_area); // (dS/dy)^T * u_csm
+      csm_solver.CalcTransCmplx_dSdy_Product(u, v_area); // (dS/dy)^T * u_csm
       //csm_solver.CalcTrans_dydA_Product(v_area, v_y);      
       v_area /= -(2.0*width); // (dy/dA)^T * (dS/dy)^T * u_csm
       v_pts = nozzle_shape.AreaReverseDerivative(

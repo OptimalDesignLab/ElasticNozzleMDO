@@ -43,7 +43,7 @@ int main() {
         
 #endif
         
-#if 0
+#if 1
 	printf("Validating MDA product...\n");
 	asmda.TestMDAProduct();
         asmda.TestMDATransposedProduct();
