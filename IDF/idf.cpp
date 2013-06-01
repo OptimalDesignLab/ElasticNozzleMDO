@@ -957,7 +957,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       csm_solver.set_coords(cfd_solver.get_x_coord(), y_coords);
       csm_solver.UpdateMesh();
       GetCSMState(k, u_csm);
-      csm_solver.SolveFor(u_csm, 100, 1e-5);
+      csm_solver.SolveFor(u_csm, 10000, 1e-5);
       SetCSMState(m, csm_solver.get_u());
       iwrk[0] = 1; // one preconditioner application
       break;
@@ -986,7 +986,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       csm_solver.set_coords(cfd_solver.get_x_coord(), y_coords);
       csm_solver.UpdateMesh();
       GetCSMState(k, u_csm);
-      csm_solver.SolveFor(u_csm, 100, 1e-5);
+      csm_solver.SolveFor(u_csm, 10000, 1e-5);
       SetCSMState(m, csm_solver.get_u());
       iwrk[0] = 1; // one preconditioner application
       break;
@@ -1176,6 +1176,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       cfd_solver.InitialCondition(rho_R, rho_u_R, e_R);
       iwrk[0] = cfd_solver.NewtonKrylov(20, 1.e-10);
       SetCFDState(j, cfd_solver.get_q());
+      cfd_solver.WriteTecplot(1.0, 1.0, "cfd_after_solve.dat");
       // Solve the CSM
       InnerProdVector press(nodes, 0.0), pts(num_bspline, 0.0),
           y_coords(nodes, 0.0);
@@ -1216,14 +1217,30 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       int k = iwrk[2];
       int m = iwrk[3];
       int iter = iwrk[4];
-      InnerProdVector pts(num_bspline, 0.0);
+      InnerProdVector pts(num_bspline, 0.0), area(nodes, 0.0), press(nodes, 0.0),
+          q(num_dis_var, 0.0), u(num_dis_var, 0.0), y_coords(nodes, 0.0);
       GetBsplinePts(i, pts);
       nozzle_shape.SetCoeff(pts);
-
       
+      GetCouplingArea(i, area);
+      cfd_solver.set_area(area);
+      GetCFDState(j, q);
+      cfd_solver.set_q(q);
+      cfd_solver.CalcAuxiliaryVariables(q);
       cfd_solver.WriteTecplot(1.0, 1.0);
-      
 
+      GetCouplingPress(i, press);
+      GetCSMState(j, u);
+      area = nozzle_shape.Area(cfd_solver.get_x_coord());     
+      CalcYCoords(area, y_coords);
+      csm_solver.set_coords(cfd_solver.get_x_coord(), y_coords);
+      csm_solver.UpdateMesh();
+      csm_solver.set_u(u);
+      csm_solver.CalcCoordsAndArea();
+
+      cfd_solver.set_area(csm_solver.get_area());
+      cfd_solver.WriteTecplot(1.0, 1.0, "csm_area.dat");
+      
 #if 0
       // uncomment to list B-spline coefficients
       cout << "before kona::info set_area: design coeff = ";
@@ -1236,7 +1253,8 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       cout << "total preconditioner calls (cfd_solver says) = " 
            << cfd_solver.TotalPreconditionerCalls() << endl;
 #endif
-      
+
+#if 0
       string filename("flow_at_opt_iter");
       std::stringstream ss;
       ss << opt_iter;
@@ -1244,7 +1262,8 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       filename.append(".dat");
       cfd_solver.WriteTecplot(1.0, 1.0, filename);
       opt_iter++;
-
+#endif
+      
       break;
     }
     default: {

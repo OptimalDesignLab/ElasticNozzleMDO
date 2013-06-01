@@ -10,6 +10,10 @@ label_fs = 10 # axis labels' font size
 
 # get data to plot
 data = open('./quasi1d.dat', 'r')
+#data = open('./cfd_after_solve.dat')
+#data = open('./init_pressure_area.dat')
+#data = open('./csm_area.dat', 'r')
+#data = open('./flow_opt.dat', 'r')
 [x, A, rho, rhou, e, p, p_targ, u, Mach, Mach_exact] = \
   np.loadtxt(data, skiprows=3, unpack=True)
 
