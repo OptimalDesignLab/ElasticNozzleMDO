@@ -236,7 +236,7 @@ int FindTargPress(const InnerProdVector & x_coord,
   AeroStructMDA asmda(nodes, order);
   asmda.InitializeCFD(x_coord, area);
   asmda.InitializeCSM(x_coord, y_coord, BCtype, BCval, E, thick, width, height);
-  int precond_calls = asmda.NewtonKrylov(30, 1.e-8);
+  int precond_calls = asmda.NewtonKrylov(30, tol);
   //asmda.GetTecplot(1.0, 1.0);
   //throw(-1);
   targ_press = asmda.get_press();
@@ -1174,7 +1174,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       GetCouplingArea(i, area);
       cfd_solver.set_area(area);
       cfd_solver.InitialCondition(rho_R, rho_u_R, e_R);
-      iwrk[0] = cfd_solver.NewtonKrylov(20, 1.e-10);
+      iwrk[0] = cfd_solver.NewtonKrylov(20, tol);
       SetCFDState(j, cfd_solver.get_q());
       cfd_solver.WriteTecplot(1.0, 1.0, "cfd_after_solve.dat");
       // Solve the CSM

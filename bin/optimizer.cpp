@@ -113,6 +113,7 @@ int main(int argc, char *argv[])
   solver.InitializeCFD(x_coord, area);
   solver.InitializeCSM(x_coord, y_coord, BCtype, BCval, E, thick, width, height);
   int precond_calls = solver.NewtonKrylov(30, tol);
+  cout << "Total solver precond calls: " << precond_calls << endl;
   solver.CopyPressIntoTarget();
 
 #if 0

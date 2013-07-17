@@ -25,7 +25,7 @@ int main() {
 	asmda.TestMDAProduct();
 #else
 	printf("Starting solver...\n");
-	int precond_calls = asmda.NewtonKrylov(30, 1.e-8);
+	int precond_calls = asmda.NewtonKrylov(30, 1.e-12);
 
         cout << "Number of MDA preconditioner calls = " << precond_calls << endl;
 
