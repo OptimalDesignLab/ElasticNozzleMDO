@@ -592,6 +592,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       solver.UpdateFromNozzle();
       solver.set_u(state[j]);
       solver.UpdateDisciplineStates();
+      std::string filename = "BFGS_inner_iter_$num.dat";
       solver.GetTecplot(1.0, 1.0);
       
       break;

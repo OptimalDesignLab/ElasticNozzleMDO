@@ -4,7 +4,7 @@ SHELL = /bin/sh
 
 .SUFFIXES:
 .SUFFIXES: .cpp .o
-.PHONY: default call tags MDA_test optimize clean
+.PHONY: default call tags MDA_test MDF_optimize clean
 
 # compiler
 CXX= gcc 
@@ -40,7 +40,7 @@ CSM_SRC= $(CSM_DIR)*.cpp
 HEADERS= $(wildcard $(CFD_HEADERS) $(CSM_HEADERS) ../*.hpp)
 SOURCES= $(wildcard $(CFD_SRC) $(CSM_SRC) ../*.cpp)
 OBJS= $(SOURCES:.cpp=.o)
-BINARIES= MDA_test.bin optimize.bin
+BINARIES= MDA_test.bin MDF_optimize.bin
 
 # implicit rule
 %.o : %.cpp $(HEADERS) Makefile
@@ -60,9 +60,9 @@ MDA_test.bin: $(OBJS) MDA_test.o Makefile
 	@echo "Compiling \""$@"\" from \""$(OBJS)"\""
 	@$(CXX) -o $@ MDA_test.o $(OBJS) $(LDFLAGS)
 
-optimize.bin: $(OBJS) optimizer.o Makefile
+MDF_optimize.bin: $(OBJS) MDF_optimize.o Makefile
 	@echo "Compiling \""$@"\" from \""$(OBJS)"\""
-	@$(CXX) -o $@ optimizer.o $(OBJS) $(LDFLAGS)
+	@$(CXX) -o $@ MDF_optimize.o $(OBJS) $(LDFLAGS)
 
 clean:
 	@echo "deleting temporary, object, and binary files"
