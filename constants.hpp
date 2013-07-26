@@ -20,7 +20,7 @@ const double y_left = 0.5*(height - area_left/width);
 const double y_right = 0.5*(height - area_right/width);
 
 // discretization parameters
-const int nodes = 41;
+const int nodes = 121;
 
 // CFD discretization parameters
 const int order = 3;
