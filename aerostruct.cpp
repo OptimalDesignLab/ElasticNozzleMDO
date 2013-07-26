@@ -459,7 +459,7 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
     cfd_.BuildAndFactorPreconditioner();
     
     // solve for the Newton update du and add to u
-    int m = 100;
+    int m = 10000;
     double krylov_tol = std::min(0.1, norm/norm0);
     krylov_tol = std::max(krylov_tol, tol/norm);
     InnerProdVector du(6*num_nodes_, 0.0);
@@ -867,7 +867,7 @@ void AeroStructPrecond::operator()(InnerProdVector & u, InnerProdVector & v)
   mda_->csm_.Precondition(u_csm, v_csm);
 #else
 
-  mda_->csm_.SolveFor(u_csm, 100, 1e-5);
+  mda_->csm_.SolveFor(u_csm, 10000, 1e-5);
   v_csm = mda_->csm_.get_u();
   mda_->cfd_.Precondition(u_cfd, v_cfd);
 
@@ -913,7 +913,7 @@ void AeroStructTransposePrecond::operator()(InnerProdVector & u, InnerProdVector
   mda_->csm_.Precondition(u_csm, v_csm);
 #else
 
-  mda_->csm_.SolveFor(u_csm, 100, 1e-5);
+  mda_->csm_.SolveFor(u_csm, 10000, 1e-5);
   v_csm = mda_->csm_.get_u();
   mda_->cfd_.PreconditionTransposed(u_cfd, v_cfd);
   

@@ -114,6 +114,7 @@ int main(int argc, char *argv[])
   solver.InitializeCSM(x_coord, y_coord, BCtype, BCval, E, thick, width, height);
   int precond_calls = solver.NewtonKrylov(30, tol);
   solver.CopyPressIntoTarget();
+  cout << "Cost of one MDA eval: " << precond_calls << endl;
 
 #if 0
   // uncomment to plot initial pressure and displaced area
@@ -569,7 +570,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       InnerProdVector dJdu(num_var, 0.0);
       solver.CalcInverseDesigndJdQ(dJdu);
       dJdu *= -1.0;
-      iwrk[0] = solver.SolveAdjoint(100, adj_tol, dJdu, state[k]);
+      iwrk[0] = solver.SolveAdjoint(10000, adj_tol, dJdu, state[k]);
       break;
     }
     case kona::info: {// supplies information to user
