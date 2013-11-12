@@ -867,11 +867,13 @@ void AeroStructPrecond::operator()(InnerProdVector & u, InnerProdVector & v)
   mda_->csm_.Precondition(u_csm, v_csm);
 #else
 
-  mda_->csm_.SolveFor(u_csm, 10000, 1e-5);
+  mda_->csm_.SolveFor(u_csm, 1000, 1e-5);
   v_csm = mda_->csm_.get_u();
+  //v_csm = u_csm;
   mda_->cfd_.Precondition(u_cfd, v_cfd);
 
 #endif
+  
   // merge the preconditioners and pass it up
   for (int i = 0; i < 3*nnp; i++) {
     v(i) = v_cfd(i);
@@ -913,11 +915,13 @@ void AeroStructTransposePrecond::operator()(InnerProdVector & u, InnerProdVector
   mda_->csm_.Precondition(u_csm, v_csm);
 #else
 
-  mda_->csm_.SolveFor(u_csm, 10000, 1e-5);
+  mda_->csm_.SolveFor(u_csm, 1000, 1e-5);
   v_csm = mda_->csm_.get_u();
+  //v_csm = u_csm;
   mda_->cfd_.PreconditionTransposed(u_cfd, v_cfd);
   
 #endif
+  
   // merge the preconditioners and pass it up
   for (int i = 0; i < 3*nnp; i++) {
     v(i) = v_cfd(i);

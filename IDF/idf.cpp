@@ -56,6 +56,7 @@ static double rho_R, rho_u_R, e_R;
 static double p_ref;
 
 static const InnerProdVector press_stag(nodes, kPressStag);
+static InnerProdVector press_targ(nodes, 0.0);
 static LECSM csm_solver(nodes);
 static Quasi1DEuler cfd_solver(nodes, order);
 static BsplineNozzle nozzle_shape;
@@ -163,7 +164,6 @@ int main(int argc, char *argv[]) {
   nozzle_shape.SetAreaAtEnds(area_left, area_right);
   
   // find the target pressure and the number of preconditioner calls for the MDA
-  InnerProdVector press_targ(nodes, 0.0);
   int solver_precond_calls = FindTargPress(x_coord, BCtype, BCval, press_targ);
 
   // set-up the cfd_solver
@@ -246,7 +246,7 @@ int FindTargPress(const InnerProdVector & x_coord,
 // ======================================================================
 
 void InitCFDSolver(const InnerProdVector & x_coord,
-                   const InnerProdVector & press_targ) {
+                   const InnerProdVector & press_t) {
   // define reference and boundary conditions
   double rho, rho_u, e;
   CalcFlowExact(kGamma, kRGas, kAreaStar, area_left, true, 
@@ -278,7 +278,7 @@ void InitCFDSolver(const InnerProdVector & x_coord,
   cfd_solver.set_diss_coeff(0.04);
 
   // define target pressure
-  cfd_solver.set_press_targ(press_targ);
+  cfd_solver.set_press_targ(press_t);
 }
 
 // ======================================================================
@@ -629,6 +629,21 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       assert((i >= 0) && (i < num_design_vec));
       assert((j >= 0) && (j < num_design_vec));
       dwrk[0] = InnerProd(design[i], design[j]);
+
+#if 0
+      if (i == j) {
+        double design_norm = 0.0;
+        for (int k = 0; k < num_bspline; k++)
+          design_norm += design[i](k)*design[j](k);
+        design_norm = sqrt(design_norm);
+        double targ_norm = 0.0;
+        for (int k = 0; k < 2*nodes; k++)
+          targ_norm += design[i](num_bspline+k)*design[j](num_bspline+k);
+        targ_norm = sqrt(targ_norm);
+        cout << "|(A^T u)_{d} | = " << design_norm << ": |(A^T u)_{t} | = "
+             << targ_norm << endl;
+      }
+#endif
       break;
     } 
     case kona::innerprod_s: {// using state array set
@@ -648,7 +663,42 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       assert((j >= 0) && (j < num_dual_vec));
       dwrk[0] = InnerProd(dual[i], dual[j]);
       break;
-    }      
+    }
+    case kona::restrict_d: {// restrict design vector to a subspace
+      int i = iwrk[0];
+      int type = iwrk[1];
+      if (type == 0) {
+        for (int k = 0; k < 2*nodes; k++)
+          design[i](num_bspline+k) = 0.0;
+      } else if (type == 1) {
+        for (int k = 0; k < num_bspline; k++)
+          design[i](k) = 0.0;
+      } else {
+        cerr << "Error in userFunc(): unexpected type in restrict_d" << endl;
+        throw(-1);
+      }
+      break;
+    }
+    case kona::convert_d: { // convert dual vector to target vector subspace
+      int i = iwrk[0];
+      int j = iwrk[1];
+      assert((i >= 0) && (i < num_design_vec));
+      assert((j >= 0) && (j < num_dual_vec));
+      for (int k = 0; k < num_bspline; k++)
+        design[i](k) = 0.0;
+      for (int k = 0; k < 2*nodes; k++)
+        design[i](num_bspline+k) = dual[j](k);      
+      break;
+    }
+    case kona::convert_c: { // convert design target subspace to dual
+      int i = iwrk[0];
+      int j = iwrk[1];
+      assert((i >= 0) && (i < num_dual_vec));
+      assert((j >= 0) && (j < num_design_vec));
+      for (int k = 0; k < 2*nodes; k++)
+        dual[i](k) = design[j](num_bspline+k);
+      break;
+    }
     case kona::eval_obj: {// evaluate the objective
       int i = iwrk[0];
       int j = iwrk[1];      
@@ -670,7 +720,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
         GetCFDState(j, q);
         cfd_solver.set_q(q);
       }
-      dwrk[0] = cfd_solver.CalcInverseDesign();
+      dwrk[0] = obj_weight*cfd_solver.CalcInverseDesign();
       break;
     }
     case kona::eval_pde: {// evaluate PDE at (design,state) =
@@ -715,6 +765,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       assert((i >= 0) && (i < num_design_vec));
       assert((j >= 0) && (j < num_state_vec));
       assert((k >= 0) && (k < num_dual_vec));
+      dual[k] = 1.0/kona::kEpsilon;
       // Evaluate the (press - press_coupling) constraint
       InnerProdVector area(nodes, 0.0), q(num_dis_var, 0.0),
           ceq_cfd(nodes, 0.0), press(nodes, 0.0);
@@ -724,6 +775,9 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       //cfd_solver.set_q(q);
       cfd_solver.CalcAuxiliaryVariables(q);
       ceq_cfd = cfd_solver.get_press();
+      // TEMP: use target pressure for boundaries
+      //ceq_cfd(0) = press_targ(0);
+      //ceq_cfd(nodes-1) = press_targ(nodes-1);      
       GetCouplingPress(i, press);
       ceq_cfd -= press;
       SetPressCnstr(k, ceq_cfd);
@@ -740,6 +794,9 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       csm_solver.set_u(u);
       csm_solver.CalcCoordsAndArea();
       ceq_csm = csm_solver.get_area();
+      // TEMP: use area_left and area_right
+      //ceq_csm(0) = area_left;
+      //ceq_csm(nodes-1) = area_right;
       GetCouplingArea(i, area);
       ceq_csm -= area;
       SetAreaCnstr(k, ceq_csm);
@@ -957,8 +1014,9 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       csm_solver.set_coords(cfd_solver.get_x_coord(), y_coords);
       csm_solver.UpdateMesh();
       GetCSMState(k, u_csm);
-      csm_solver.SolveFor(u_csm, 10000, 1e-5);
+      csm_solver.SolveFor(u_csm, 1000, 1e-5);      
       SetCSMState(m, csm_solver.get_u());
+      //SetCSMState(m, u_csm);
       iwrk[0] = 1; // one preconditioner application
       break;
     }
@@ -986,8 +1044,9 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       csm_solver.set_coords(cfd_solver.get_x_coord(), y_coords);
       csm_solver.UpdateMesh();
       GetCSMState(k, u_csm);
-      csm_solver.SolveFor(u_csm, 10000, 1e-5);
+      csm_solver.SolveFor(u_csm, 1000, 1e-5);
       SetCSMState(m, csm_solver.get_u());
+      //SetCSMState(m, u_csm);
       iwrk[0] = 1; // one preconditioner application
       break;
     }
@@ -1000,6 +1059,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       assert((j >= 0) && (j < num_state_vec));
       assert((k >= 0) && (k < num_design_vec));
       assert((m >= 0) && (m < num_dual_vec));
+      dual[m] = 1.0/kona::kEpsilon;
       // component corresponding to (press - press_coupling)
       InnerProdVector u_press(nodes, 0.0);
       GetCouplingPress(k, u_press);
@@ -1024,6 +1084,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       assert((j >= 0) && (j < num_state_vec));
       assert((k >= 0) && (k < num_state_vec));
       assert((m >= 0) && (m < num_dual_vec));
+      dual[m] = 1.0/kona::kEpsilon;
       // component corresponding to (press - press_coupling)
       InnerProdVector area(nodes, 0.0), q(num_dis_var, 0.0),
           u_cfd(num_dis_var, 0.0), v_press(nodes, 0.0);
@@ -1033,11 +1094,17 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       cfd_solver.set_q(q);
       GetCFDState(k, u_cfd);
       cfd_solver.CalcDPressDQProduct(u_cfd, v_press);
+      // TEMP: use target pressure
+      //v_press(0) = 0.0;
+      //v_press(nodes-1) = 0.0;
       SetPressCnstr(m, v_press);
       // component corresponding to (area - area_coupling)
       InnerProdVector u_csm(num_dis_var, 0.0), v_area(nodes, 0.0);
       GetCSMState(k, u_csm);
       csm_solver.Calc_dAdu_Product(u_csm, v_area);
+      // TEMP: use area_left and area_right
+      //v_area(0) = 0.0;
+      //v_area(nodes-1) = 0.0;
       SetAreaCnstr(m, v_area);
       break;
     }
@@ -1050,6 +1117,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       assert((j >= 0) && (j < num_state_vec));
       assert((k >= 0) && (k < num_dual_vec));
       assert((m >= 0) && (m < num_design_vec));
+      design[m] = 1.0/kona::kEpsilon;
       // component corresponding to (press - press_coupling)
       InnerProdVector u_press(nodes, 0.0);
       GetPressCnstr(k, u_press);
@@ -1075,6 +1143,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       assert((j >= 0) && (j < num_state_vec));
       assert((k >= 0) && (k < num_dual_vec));
       assert((m >= 0) && (m < num_state_vec));
+      state[m] = 1.0/kona::kEpsilon;
       // component corresponding to (press - press_coupling)
       InnerProdVector area(nodes, 0.0), q(num_dis_var, 0.0),
           u_press(nodes, 0.0), v_cfd(num_dis_var, 0.0);
@@ -1083,12 +1152,18 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       cfd_solver.set_area(area);
       cfd_solver.set_q(q);
       GetPressCnstr(k, u_press);
+      // TEMP: use target pressure
+      //u_press(0) = 0.0;
+      //u_press(nodes-1) = 0.0;      
       cfd_solver.CalcDPressDQTransposedProduct(u_press, v_cfd);
       SetCFDState(m, v_cfd);
       // component corresponding to (area - area_coupling)
       InnerProdVector u_area(nodes, 0.0), v_csm(num_dis_var, 0.0);
       GetAreaCnstr(k, u_area);
-      csm_solver.CalcTrans_dAdu_Product(u_area, v_csm);
+      // TEMP: use area_left and area_right
+      //u_area(0) = 0.0;
+      //u_area(nodes-1) = 0.0;
+      csm_solver.CalcTrans_dAdu_Product(u_area, v_csm);      
       SetCSMState(m, v_csm);
       break;        
     }       
@@ -1117,6 +1192,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       cfd_solver.set_area(area);
       cfd_solver.set_q(q);
       cfd_solver.CalcInverseDesigndJdQ(g_cfd);
+      g_cfd *= obj_weight;
       SetCFDState(k, g_cfd);
       // CSM contribution to objective gradient
       g_cfd = 0.0;
@@ -1134,7 +1210,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       cout << "beginning initdesign..." << endl;
       
       SetBsplinePts(i, pts);
-      cout << "after SetBsplinePts(i, pts)" << endl;
+      //cout << "after SetBsplinePts(i, pts)" << endl;
       nozzle_shape.SetCoeff(pts);
 
       // fit a b-spline nozzle to a given shape
@@ -1146,7 +1222,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       nozzle_shape.FitNozzle(x_coord, area);
       nozzle_shape.GetCoeff(pts);
 
-      cout << "after initializing nozzle_shape..." << endl;
+      //cout << "after initializing nozzle_shape..." << endl;
       SetBsplinePts(i, pts);
       SetCouplingArea(i, area);
 
@@ -1204,8 +1280,23 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       assert((k >= 0) && (k < num_state_vec));
       // This should not be needed for IDF (the adjoint solve is done inside
       // kona)
-      cerr << "Error in userFunc(): unexpected case kona::adjsolve!!!!" << endl;
-      throw(-1);      
+      //cerr << "Error in userFunc(): unexpected case kona::adjsolve!!!!" << endl;
+      //throw(-1);
+      // CFD contribution to objective gradient
+      InnerProdVector area(nodes, 0.0), q(num_dis_var, 0.0),
+          g_cfd(num_dis_var, 0.0), adj_cfd(num_dis_var, 0.0);
+      GetCouplingArea(i, area);
+      GetCFDState(j, q);
+      cfd_solver.set_area(area);
+      cfd_solver.set_q(q);
+      cfd_solver.CalcInverseDesigndJdQ(g_cfd);
+      g_cfd *= obj_weight;
+      g_cfd *= -1.0;
+      iwrk[0] = cfd_solver.SolveAdjoint(100, adj_tol, g_cfd, adj_cfd);      
+      SetCFDState(k, adj_cfd);
+      // CSM contribution to objective gradient
+      adj_cfd = 0.0;
+      SetCSMState(k, adj_cfd);
       break;
     }
     case kona::info: {// supplies information to user
