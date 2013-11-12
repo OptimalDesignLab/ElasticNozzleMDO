@@ -38,7 +38,7 @@ const double E = 1.e7; //1.e9;   // Young's modulus
 const double thick = 0.01; //0.01;        // fixed beam element thickness
 
 // objective parameters
-const double obj_weight = 1.e5;
+const double obj_weight = 1.e4;
 
 // tolerances for primal and adjoint problems
 const double tol = 1.e-10;

@@ -1014,7 +1014,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       csm_solver.set_coords(cfd_solver.get_x_coord(), y_coords);
       csm_solver.UpdateMesh();
       GetCSMState(k, u_csm);
-      csm_solver.SolveFor(u_csm, 1000, 1e-5);      
+      csm_solver.SolveFor(u_csm, 10000, 1e-5);      
       SetCSMState(m, csm_solver.get_u());
       //SetCSMState(m, u_csm);
       iwrk[0] = 1; // one preconditioner application
@@ -1044,7 +1044,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       csm_solver.set_coords(cfd_solver.get_x_coord(), y_coords);
       csm_solver.UpdateMesh();
       GetCSMState(k, u_csm);
-      csm_solver.SolveFor(u_csm, 1000, 1e-5);
+      csm_solver.SolveFor(u_csm, 10000, 1e-5);
       SetCSMState(m, csm_solver.get_u());
       //SetCSMState(m, u_csm);
       iwrk[0] = 1; // one preconditioner application
