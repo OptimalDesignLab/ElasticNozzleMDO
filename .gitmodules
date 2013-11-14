@@ -1,0 +1,6 @@
+[submodule "CSM"]
+	path = CSM
+	url = git@bitbucket.org:odl/linear-elasticity-csm.git
+[submodule "CFD"]
+	path = CFD
+	url = git@bitbucket.org:odl/quasi1d-euler.git
