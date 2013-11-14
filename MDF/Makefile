@@ -25,8 +25,8 @@ LDFLAGS= -lm -lstdc++ -llapack -L. -L$(BOOST_ROOT)/stage/lib -lboost_program_opt
 ALL_CXXFLAGS= -I. $(CXXFLAGS) -I$(BOOST_ROOT) -I$(KONA_ROOT)/src
 
 # directories
-CFD_DIR=../CFD
-CSM_DIR=../CSM
+CFD_DIR=../quasi_1d_euler
+CSM_DIR=../linear_elastic_csm
 
 # headers
 CFD_HEADERS= $(CFD_DIR)/*.hpp
