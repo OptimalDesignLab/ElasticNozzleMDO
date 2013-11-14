@@ -29,8 +29,8 @@ LDFLAGS= -lm -lstdc++ -L$(BOOST_ROOT)/stage/lib -lboost_program_options \
 ALL_CXXFLAGS= -I. $(CXXFLAGS) -I $(BOOST_ROOT) -I $(KONA_ROOT)/src
 
 # directories
-CFD_DIR=../quasi_1d_euler
-CSM_DIR=../linear_elastic_csm
+CFD_DIR=../CFD
+CSM_DIR=../CSM
 MDA_DIR=..
 
 # headers

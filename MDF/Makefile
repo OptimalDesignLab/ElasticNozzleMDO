@@ -19,22 +19,22 @@ BOOST_ROOT= $(BOOST_HOME)
 KONA_ROOT= $(KONA_HOME)
 
 # linker options
-LDFLAGS= -lstdc++ -llapack -L. -lboost_program_options -lm -L$(KONA_ROOT) -lkona
+LDFLAGS= -lm -lstdc++ -llapack -L. -L$(BOOST_ROOT)/stage/lib -lboost_program_options  -L$(KONA_ROOT) -lkona
 
 # options that DO NOT vary
 ALL_CXXFLAGS= -I. $(CXXFLAGS) -I$(BOOST_ROOT) -I$(KONA_ROOT)/src
 
 # directories
-CFD_DIR=../quasi_1d_euler/
-CSM_DIR=../linear_elastic_csm/
+CFD_DIR=../CFD
+CSM_DIR=../CSM
 
 # headers
-CFD_HEADERS= $(CFD_DIR)*.hpp
-CSM_HEADERS= $(CSM_DIR)*.hpp
+CFD_HEADERS= $(CFD_DIR)/*.hpp
+CSM_HEADERS= $(CSM_DIR)/*.hpp
 
 # source files
-CFD_SRC= $(CFD_DIR)*.cpp
-CSM_SRC= $(CSM_DIR)*.cpp
+CFD_SRC= $(CFD_DIR)/*.cpp
+CSM_SRC= $(CSM_DIR)/*.cpp
 
 # source and object file names
 HEADERS= $(wildcard $(CFD_HEADERS) $(CSM_HEADERS) ../*.hpp)
