@@ -7,7 +7,7 @@ SHELL = /bin/sh
 .PHONY: default clean all
 
 # compiler
-CXX= gcc 
+CXX= g++
 
 # c preprocessor options
 CPPFLAGS= -cpp -DNDEBUG -DBOOST_UBLAS_ENABLE_PROXY_SHORTCUTS -DBOOST_UBLAS_TYPE_CHECK=0
