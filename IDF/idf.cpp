@@ -15,6 +15,9 @@
 #include <user_memory.hpp>
 #include <kona.hpp>
 #include <boost/math/constants/constants.hpp>
+#include <boost/random/mersenne_twister.hpp>
+#include <boost/random/uniform_real_distribution.hpp>
+#include <boost/random/variate_generator.hpp>
 
 #include "../quasi_1d_euler/inner_prod_vector.hpp"
 #include "../quasi_1d_euler/exact_solution.hpp"
@@ -45,6 +48,7 @@ static vector<InnerProdVector> dual;      // dual vectors
 // design parameters
 static int num_design; // total number of design vars (control points + coupling)
 static int num_bspline; // number of b-spline control points
+static bool rand_init = true; // randomly perturb the initial design
 
 // some vector sizes
 static const int num_dis_var = 3*nodes; // number of states in a discipline
@@ -165,6 +169,7 @@ int main(int argc, char *argv[]) {
   
   // find the target pressure and the number of preconditioner calls for the MDA
   int solver_precond_calls = FindTargPress(x_coord, BCtype, BCval, press_targ);
+  cout << "total MDA precond calls = " << solver_precond_calls << endl;
 
   // set-up the cfd_solver
   InitCFDSolver(x_coord, press_targ);
@@ -177,7 +182,7 @@ int main(int argc, char *argv[]) {
   KonaOptimize(userFunc, optns);
   int kona_precond_calls = cfd_solver.TotalPreconditionerCalls();
     
-  cout << "Total cfd_solver precond calls: " << solver_precond_calls << endl;
+  cout << "Total MDA precond calls: " << solver_precond_calls << endl;
   cout << "Total Kona precond calls:   " << kona_precond_calls << endl;
   cout << "Ratio of precond calls:     " 
        << ( static_cast<double>(kona_precond_calls)
@@ -205,13 +210,20 @@ double MeshCoord(const double & length, const int & num_nodes,
 // ======================================================================
 
 double TargetNozzleArea(const double & x) {
+#if 1
   // cubic polynomial nozzle
-  //const double area_mid = 1.5;
   double a = area_left;
   double b = 4.0*area_mid - 5.0*area_left + area_right;
   double c = -4.0*(area_right -2.0*area_left + area_mid);
   double d = 4.0*(area_right - area_left);
   return a + x*(b + x*(c + x*d));
+#else
+  // cosine series nozzle
+  double a = 0.25*(area_left + area_right) + 0.5*area_mid;
+  double b = 0.5*(area_left - area_right);
+  double c = 0.25*(area_left + area_right) - 0.5*area_mid;
+  return a + b*cos(pi*x) + c*cos(2.0*pi*x);
+#endif
 }
 
 // ======================================================================
@@ -1014,7 +1026,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       csm_solver.set_coords(cfd_solver.get_x_coord(), y_coords);
       csm_solver.UpdateMesh();
       GetCSMState(k, u_csm);
-      csm_solver.SolveFor(u_csm, 10000, 1e-5);      
+      csm_solver.SolveFor(u_csm, 10000, 1e-3);      
       SetCSMState(m, csm_solver.get_u());
       //SetCSMState(m, u_csm);
       iwrk[0] = 1; // one preconditioner application
@@ -1044,7 +1056,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       csm_solver.set_coords(cfd_solver.get_x_coord(), y_coords);
       csm_solver.UpdateMesh();
       GetCSMState(k, u_csm);
-      csm_solver.SolveFor(u_csm, 10000, 1e-5);
+      csm_solver.SolveFor(u_csm, 10000, 1e-3);
       SetCSMState(m, csm_solver.get_u());
       //SetCSMState(m, u_csm);
       iwrk[0] = 1; // one preconditioner application
@@ -1222,6 +1234,21 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       nozzle_shape.FitNozzle(x_coord, area);
       nozzle_shape.GetCoeff(pts);
 
+      if (rand_init) {
+        // randomly perturb the initial design and area
+        typedef boost::random::mt19937 generator_type;
+        generator_type gen(static_cast<unsigned int>(std::time(0)));
+        boost::random::uniform_real_distribution<double> dist(-0.25, 0.25);
+        //boost::random::uniform_real_distribution<double> dist(-5, 5);
+        boost::variate_generator<generator_type&,
+                                 boost::random::uniform_real_distribution<double> >
+            uni(gen, dist);
+        for (int n = 0; n < num_bspline; n++)
+          pts(n) *= (1.0 + uni());
+        for (int n = 0; n < nodes; n++)
+          area(n) *= (1.0 + uni());
+      }
+      
       //cout << "after initializing nozzle_shape..." << endl;
       SetBsplinePts(i, pts);
       SetCouplingArea(i, area);
@@ -1232,6 +1259,20 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       iwrk[0] = cfd_solver.NewtonKrylov(100, 1.e-6);
       cfd_solver.WriteTecplot(1.0, 1.0, "init_pressure_area.dat");      
       press = cfd_solver.get_press();
+
+      if (rand_init) {
+        // randomly perturb the initial pressure
+        typedef boost::random::mt19937 generator_type;
+        generator_type gen(static_cast<unsigned int>(std::time(0)));
+        boost::random::uniform_real_distribution<double> dist(-0.25, 0.25);
+        //boost::random::uniform_real_distribution<double> dist(-5, 5);
+        boost::variate_generator<generator_type&,
+                                 boost::random::uniform_real_distribution<double> >
+            uni(gen, dist);
+        for (int n = 0; n < nodes; n++)
+          press(n) *= (1.0 + uni());
+      }
+      
       SetCouplingPress(i, press);
       cout << "kona::initdesign design coeff = ";
       for (int n = 0; n < num_bspline; n++)
@@ -1271,17 +1312,15 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       // iwrk[0] += ?? how to incorporate?
       break;
     }
-    case kona::adjsolve: {// solve the adjoint equations
+    case kona::linsolve: {// solve the linearized equations
       int i = iwrk[0];
       int j = iwrk[1];
       int k = iwrk[2];
+      int m = iwrk[3];
       assert((i >= 0) && (i < num_design_vec));
       assert((j >= 0) && (j < num_state_vec));
       assert((k >= 0) && (k < num_state_vec));
-      // This should not be needed for IDF (the adjoint solve is done inside
-      // kona)
-      //cerr << "Error in userFunc(): unexpected case kona::adjsolve!!!!" << endl;
-      //throw(-1);
+      assert((m >= 0) && (m < num_state_vec));
       // CFD contribution to objective gradient
       InnerProdVector area(nodes, 0.0), q(num_dis_var, 0.0),
           g_cfd(num_dis_var, 0.0), adj_cfd(num_dis_var, 0.0);
@@ -1289,14 +1328,71 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       GetCFDState(j, q);
       cfd_solver.set_area(area);
       cfd_solver.set_q(q);
-      cfd_solver.CalcInverseDesigndJdQ(g_cfd);
-      g_cfd *= obj_weight;
-      g_cfd *= -1.0;
-      iwrk[0] = cfd_solver.SolveAdjoint(100, adj_tol, g_cfd, adj_cfd);      
-      SetCFDState(k, adj_cfd);
-      // CSM contribution to objective gradient
-      adj_cfd = 0.0;
-      SetCSMState(k, adj_cfd);
+      InnerProdVector pts(num_bspline, 0.0), y_coords(nodes, 0.0),
+          u_csm(num_dis_var, 0.0);
+      GetCFDState(k, g_cfd);
+      iwrk[0] = cfd_solver.SolveLinearized(100, adj_tol, g_cfd, adj_cfd);
+      SetCFDState(m, adj_cfd);
+      // CSM contribution
+      // Note: stiffness matrix does not depend on press
+      GetBsplinePts(i, pts);
+      nozzle_shape.SetCoeff(pts);
+      area = nozzle_shape.Area(cfd_solver.get_x_coord());        
+      CalcYCoords(area, y_coords);
+      csm_solver.set_coords(cfd_solver.get_x_coord(), y_coords);
+      csm_solver.UpdateMesh();
+      GetCSMState(k, g_cfd);
+      csm_solver.SolveFor(g_cfd, 10000, adj_tol);
+      SetCSMState(m, csm_solver.get_u());
+      break;
+    }      
+    case kona::adjsolve: {// solve the adjoint equations
+      int i = iwrk[0];
+      int j = iwrk[1];
+      int k = iwrk[2];
+      int m = iwrk[3];
+      assert((i >= 0) && (i < num_design_vec));
+      assert((j >= 0) && (j < num_state_vec));
+      assert((m >= 0) && (m < num_state_vec));
+      // CFD contribution to objective gradient
+      InnerProdVector area(nodes, 0.0), q(num_dis_var, 0.0),
+          g_cfd(num_dis_var, 0.0), adj_cfd(num_dis_var, 0.0);
+      GetCouplingArea(i, area);
+      GetCFDState(j, q);
+      cfd_solver.set_area(area);
+      cfd_solver.set_q(q);
+      if (k == -1) {
+        cfd_solver.CalcInverseDesigndJdQ(g_cfd);
+        g_cfd *= obj_weight;
+        g_cfd *= -1.0;
+        iwrk[0] = cfd_solver.SolveAdjoint(100, adj_tol, g_cfd, adj_cfd);      
+        SetCFDState(m, adj_cfd);
+        // CSM contribution to objective gradient
+        adj_cfd = 0.0;
+        SetCSMState(m, adj_cfd);
+      } else if (k >= 0) {
+        InnerProdVector pts(num_bspline, 0.0), y_coords(nodes, 0.0),
+            area(nodes, 0.0), u_csm(num_dis_var, 0.0);
+        assert(k < num_state_vec);
+        GetCFDState(k, g_cfd);
+        iwrk[0] = cfd_solver.SolveAdjoint(100, adj_tol, g_cfd, adj_cfd);      
+        SetCFDState(m, adj_cfd);
+        // CSM contribution
+        // Note: stiffness matrix does not depend on press
+        GetBsplinePts(i, pts);
+        nozzle_shape.SetCoeff(pts);
+        area = nozzle_shape.Area(cfd_solver.get_x_coord());        
+        CalcYCoords(area, y_coords);
+        csm_solver.set_coords(cfd_solver.get_x_coord(), y_coords);
+        csm_solver.UpdateMesh();
+        GetCSMState(k, g_cfd);
+        csm_solver.SolveFor(g_cfd, 10000, adj_tol);
+        SetCSMState(m, csm_solver.get_u());
+      } else {
+        cerr << "Error in usrfunc(adjsolve): invalid index" << endl;
+        throw(-1);
+      }
+      iwrk[1] = -10; // temporary
       break;
     }
     case kona::info: {// supplies information to user

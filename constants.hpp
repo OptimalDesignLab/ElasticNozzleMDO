@@ -14,13 +14,13 @@ const double width = 0.01; //1.0;
 const double x_min = 0.0;
 const double x_max = x_min + length;
 const double area_left = 2.0;
-const double area_right = 1.9; //1.75; //
-const double area_mid = 1.8; //1.5; //
+const double area_right = 1.75; //1.9; //
+const double area_mid = 1.5; //1.8; //
 const double y_left = 0.5*(height - area_left/width);
 const double y_right = 0.5*(height - area_right/width);
 
 // discretization parameters
-const int nodes = 61; //121;
+const int nodes = 61; //121; // 61;
 
 // CFD discretization parameters
 const int order = 3;
@@ -38,8 +38,8 @@ const double E = 1.e7; //1.e9;   // Young's modulus
 const double thick = 0.01; //0.01;        // fixed beam element thickness
 
 // objective parameters
-const double obj_weight = 1.e4;
+const double obj_weight = 1.e4; //1.e5; // 1.e5 works well
 
 // tolerances for primal and adjoint problems
-const double tol = 1.e-10;
-const double adj_tol = 1.e-8;
+const double tol = 1.e-8;
+const double adj_tol = 1.e-6; //1.e-8;

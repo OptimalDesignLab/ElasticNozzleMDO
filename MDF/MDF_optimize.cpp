@@ -166,13 +166,20 @@ double InitNozzleArea(const double & x) {
 // ======================================================================
 
 double TargetNozzleArea(const double & x) {
+#if 1
   // cubic polynomial nozzle
-  //const double area_mid = 1.5;
   double a = area_left;
   double b = 4.0*area_mid - 5.0*area_left + area_right;
   double c = -4.0*(area_right -2.0*area_left + area_mid);
   double d = 4.0*(area_right - area_left);
   return a + x*(b + x*(c + x*d));
+#else
+  // cosine series nozzle
+  double a = 0.25*(area_left + area_right) + 0.5*area_mid;
+  double b = 0.5*(area_left - area_right);
+  double c = 0.25*(area_left + area_right) - 0.5*area_mid;
+  return a + b*cos(pi*x) + c*cos(2.0*pi*x);
+#endif
 }
 
 // ======================================================================
@@ -336,8 +343,9 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
         iwrk[0] = 0; // no precondition calls
         solver.set_u(state[j]);
         solver.UpdateFromNozzle();
-      }
+      }      
       dwrk[0] = solver.CalcInverseDesign();
+      cout << "objective function = " << dwrk[0] << endl;
       break;
     }
     case kona::eval_pde: {// evaluate PDE at (design,state) =
@@ -557,21 +565,44 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       state[j] = solver.get_u();
       break;
     }
-    case kona::adjsolve: {// solve the adjoint equations
+    case kona::linsolve: {// solve the linearized primal equations
       int i = iwrk[0];
       int j = iwrk[1];
       int k = iwrk[2];
+      int m = iwrk[3];
       assert((i >= 0) && (i < num_design_vec));
       assert((j >= 0) && (j < num_state_vec));
       assert((k >= 0) && (k < num_state_vec));
+      assert((m >= 0) && (m < num_state_vec));      
       nozzle_shape.SetCoeff(design[i]);
       solver.set_u(state[j]);
       solver.UpdateDisciplineStates();
       solver.UpdateFromNozzle();
-      InnerProdVector dJdu(num_var, 0.0);
-      solver.CalcInverseDesigndJdQ(dJdu);
-      dJdu *= -1.0;
-      iwrk[0] = solver.SolveAdjoint(10000, adj_tol, dJdu, state[k]);
+      iwrk[0] = solver.SolveLinearized(10000, adj_tol, state[k], state[m]);
+      break;
+    }      
+    case kona::adjsolve: {// solve the adjoint equations
+      int i = iwrk[0];
+      int j = iwrk[1];
+      int k = iwrk[2];
+      int m = iwrk[3];
+      assert((i >= 0) && (i < num_design_vec));
+      assert((j >= 0) && (j < num_state_vec));
+      assert((m >= 0) && (m < num_state_vec));
+      nozzle_shape.SetCoeff(design[i]);
+      solver.set_u(state[j]);
+      solver.UpdateDisciplineStates();
+      solver.UpdateFromNozzle();
+      if (k == -1) {      
+        InnerProdVector dJdu(num_var, 0.0);
+        solver.CalcInverseDesigndJdQ(dJdu);
+        dJdu *= -1.0;
+        iwrk[0] = solver.SolveAdjoint(10000, adj_tol, dJdu, state[m]);
+      } else {
+        assert((k >= 0) && (k < num_state_vec));        
+        iwrk[0] = solver.SolveAdjoint(10000, adj_tol, state[k], state[m]);
+      }
+      iwrk[1] = -10; // TEMP
       break;
     }
     case kona::info: {// supplies information to user

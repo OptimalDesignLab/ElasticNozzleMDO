@@ -158,10 +158,23 @@ public:
   int NewtonKrylov(const int & max_iter, const double & tol);
 
   /*!
+   * \brief solves for the linearized aero-structural problem
+   * \param[in] max_iter - maximum number of iterations permitted
+   * \param[in] tol - tolerance with which to solve the system
+   * \param[in] rhs - the rhs of the linearized system
+   * \param[out] sol - the solution vector
+   * \returns total number of preconditioner calls
+   */
+  int SolveLinearized(const int & max_iter, const double & tol,
+                      const InnerProdVector & rhs,
+                      InnerProdVector & sol);
+  
+  /*!
    * \brief solves for the coupled adjoint variables using a Krylov solver
    * \param[in] max_iter - maximum number of iterations permitted
    * \param[in] tol - tolerance with which to solve the system
    * \param[in] dJdu - the rhs of the adjoint linear system
+   * \param[out] psi - the adjoint solution vector
    * \returns total number of preconditioner calls
    */
   int SolveAdjoint(const int & max_iter, const double & tol,

@@ -22,11 +22,12 @@ KONA_ROOT= $(KONA_HOME)
 # linker options
 # NOTE: -L is for linking, -Wl,-rpath is for loading
 #LDFLAGS= -lstdc++ -L$(KONA_ROOT) -Wl,-rpath,$(KONA_ROOT) -lkona
-LDFLAGS= -lm -lstdc++ -L$(BOOST_ROOT)/stage/lib -lboost_program_options \
-	-L$(KONA_ROOT) -lkona
+#LDFLAGS= -lm -lstdc++ -L$(BOOST_ROOT)/stage/lib -lboost_program_options \
+#	-L$(KONA_ROOT) -lkona
+LDFLAGS= -Wl,-rpath=$(KONA_ROOT) -L$(KONA_ROOT) -lkona
 
 # options that DO NOT vary
-ALL_CXXFLAGS= -I. $(CXXFLAGS) -I $(BOOST_ROOT) -I $(KONA_ROOT)/src
+ALL_CXXFLAGS= -I. $(CXXFLAGS) -I$(KONA_ROOT)/boost  -I $(KONA_ROOT)/src
 
 # directories
 CFD_DIR=../quasi_1d_euler

@@ -492,6 +492,30 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
 
 // ======================================================================
 
+int AeroStructMDA::SolveLinearized(const int & max_iter, const double & tol,
+                                   const InnerProdVector & rhs,
+                                   InnerProdVector & sol) {
+  kona::MatrixVectorProduct<InnerProdVector>* 
+      mat_vec = new AeroStructProduct(this);
+  kona::Preconditioner<InnerProdVector>*
+      precond = new AeroStructPrecond(this);
+   
+  string filename = "mda_linearized_krylov.dat";
+  ofstream fout(filename.c_str());
+
+  // Update CFD preconditioner
+  cfd_.BuildAndFactorPreconditioner();
+  
+  sol = 0.0;
+  int precond_calls = 0;
+  kona::FGMRES(max_iter, tol, rhs, sol, *mat_vec, *precond,
+               precond_calls, fout);
+  fout.close();
+  return precond_calls;
+}
+
+// ======================================================================
+
 int AeroStructMDA::SolveAdjoint(const int & max_iter, const double & tol,
                                 const InnerProdVector & dJdu,
                                 InnerProdVector & psi) {
@@ -716,6 +740,7 @@ double AeroStructMDA::CalcInverseDesign()
     u_cfd(i) = u_(i);
   cfd_.set_q(u_cfd);
   double out = cfd_.CalcInverseDesign();
+  return out;
 }
 
 // ======================================================================
@@ -867,7 +892,7 @@ void AeroStructPrecond::operator()(InnerProdVector & u, InnerProdVector & v)
   mda_->csm_.Precondition(u_csm, v_csm);
 #else
 
-  mda_->csm_.SolveFor(u_csm, 1000, 1e-5);
+  mda_->csm_.SolveFor(u_csm, 1000, 1e-3);
   v_csm = mda_->csm_.get_u();
   //v_csm = u_csm;
   mda_->cfd_.Precondition(u_cfd, v_cfd);
@@ -915,7 +940,7 @@ void AeroStructTransposePrecond::operator()(InnerProdVector & u, InnerProdVector
   mda_->csm_.Precondition(u_csm, v_csm);
 #else
 
-  mda_->csm_.SolveFor(u_csm, 1000, 1e-5);
+  mda_->csm_.SolveFor(u_csm, 1000, 1e-3);
   v_csm = mda_->csm_.get_u();
   //v_csm = u_csm;
   mda_->cfd_.PreconditionTransposed(u_cfd, v_cfd);
