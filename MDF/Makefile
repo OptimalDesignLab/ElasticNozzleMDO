@@ -25,8 +25,8 @@ LDFLAGS= -lboost_program_options -lboost_python -lm -lstdc++ -llapack -lblas -lp
 ALL_CXXFLAGS= -I. $(CXXFLAGS) -I/usr/include/python2.7
 
 # directories
-CFD_DIR=../quasi_1d_euler
-CSM_DIR=../linear_elastic_csm
+CFD_DIR=../Quasi1DEuler
+CSM_DIR=../LECSM
 
 # headers
 CFD_HEADERS= $(CFD_DIR)/*.hpp

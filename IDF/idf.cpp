@@ -19,11 +19,11 @@
 #include <boost/random/uniform_real_distribution.hpp>
 #include <boost/random/variate_generator.hpp>
 
-#include "../quasi_1d_euler/inner_prod_vector.hpp"
-#include "../quasi_1d_euler/exact_solution.hpp"
-#include "../quasi_1d_euler/nozzle.hpp"
-#include "../quasi_1d_euler/quasi_1d_euler.hpp"
-#include "../linear_elastic_csm/lecsm.hpp"
+#include "../Quasi1DEuler/inner_prod_vector.hpp"
+#include "../Quasi1DEuler/exact_solution.hpp"
+#include "../Quasi1DEuler/nozzle.hpp"
+#include "../Quasi1DEuler/quasi_1d_euler.hpp"
+#include "../LECSM/lecsm.hpp"
 #include "../aerostruct.hpp"
 #include "../constants.hpp"
 

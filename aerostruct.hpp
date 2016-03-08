@@ -17,11 +17,11 @@
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_real_distribution.hpp>
 
-#include "./quasi_1d_euler/nozzle.hpp"
-#include "./quasi_1d_euler/inner_prod_vector.hpp"
-#include "./quasi_1d_euler/quasi_1d_euler.hpp"
-#include "./quasi_1d_euler/exact_solution.hpp"
-#include "./linear_elastic_csm/lecsm.hpp"
+#include "./Quasi1DEuler/nozzle.hpp"
+#include "./Quasi1DEuler/inner_prod_vector.hpp"
+#include "./Quasi1DEuler/quasi_1d_euler.hpp"
+#include "./Quasi1DEuler/exact_solution.hpp"
+#include "./LECSM/lecsm.hpp"
 
 #include "./constants.hpp"
 #include "./krylov.hpp"
