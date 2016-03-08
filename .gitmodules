@@ -1,6 +1,6 @@
-[submodule "quasi_1d_euler"]
-	path = quasi_1d_euler
-	url = git@bitbucket.org:odl/quasi_1d_euler.git
-[submodule "linear_elastic_csm"]
-	path = linear_elastic_csm
-	url = git@bitbucket.org:odl/linear_elastic_csm.git
+[submodule "Quasi1DEuler"]
+	path = Quasi1DEuler
+	url = git@github.com:OptimalDesignLab/Quasi1DEuler.git
+[submodule "LECSM"]
+	path = LECSM
+	url = git@github.com:OptimalDesignLab/LECSM.git
