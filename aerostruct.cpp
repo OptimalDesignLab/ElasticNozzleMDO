@@ -6,21 +6,6 @@
  */
 
 #include "./aerostruct.hpp"
-#include "./constants.hpp"
-
-#include <math.h>
-
-#include <ostream>
-#include <iostream>
-#include <fstream>
-#include <string>
-
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/random/uniform_real_distribution.hpp>
-
-#include <krylov.hpp>
-
-#include "./quasi_1d_euler/exact_solution.hpp"
 
 using std::cout;
 using std::cerr;
@@ -37,7 +22,7 @@ using std::ofstream;
 // ======================================================================
 
 void AeroStructMDA::UpdateDisciplineStates() {
-  // Split system u into CSM and CFD vectors  
+  // Split system u into CSM and CFD vectors
   InnerProdVector u_cfd(3*num_nodes_, 0.0), u_csm(3*num_nodes_, 0.0);
   for (int i = 0; i < 3*num_nodes_; i++) {
     u_cfd(i) = u_(i);
@@ -53,7 +38,7 @@ void AeroStructMDA::UpdateDisciplineStates() {
 void AeroStructMDA::SetInitialCondition() {
   // set initial condition in CFD
   double rho, rho_u, e;
-  CalcFlowExact(kGamma, kRGas, kAreaStar, area_left, true, 
+  CalcFlowExact(kGamma, kRGas, kAreaStar, area_left, true,
                 kTempStag, kPressStag, rho, rho_u, e);
   double rho_ref = rho;
   double press = (kGamma - 1.0)*(e - 0.5*rho_u*rho_u/rho);
@@ -73,7 +58,7 @@ void AeroStructMDA::SetInitialCondition() {
     u_(3*i+1) = rho_u_R;
     u_(3*i+2) = e_R;
   }
-  UpdateDisciplineStates();  
+  UpdateDisciplineStates();
 }
 
 // ======================================================================
@@ -97,7 +82,7 @@ void AeroStructMDA::UpdateFromNozzle()
   csm_.set_coords(x_coord, y_coord);
   csm_.UpdateMesh();
   csm_.CalcCoordsAndArea();
-  cfd_.set_area(csm_.get_area()); 
+  cfd_.set_area(csm_.get_area());
 }
 
 // ======================================================================
@@ -126,7 +111,7 @@ void AeroStructMDA::InitializeTestProb()
     //y_coord(i) = 0.25*(1.0 - x_coord(i))*x_coord(i);
     //area(i) = w*(h - 2*y_coord(i));
     //area(i) = area_left + (area_right - area_left)*x_coord(i)/length;
-    area(i) = a + x_coord(i)*(b + x_coord(i)*(c + x_coord(i)*d));    
+    area(i) = a + x_coord(i)*(b + x_coord(i)*(c + x_coord(i)*d));
     y_coord(i) = 0.5*(h - area(i)/width);
   }
 
@@ -162,10 +147,10 @@ void AeroStructMDA::InitializeTestProb()
 void AeroStructMDA::GridTest() {
 
   //CalcResidual();
-  
+
   int fine_nodes = 2*(num_nodes_-1) + 1;
   InnerProdVector x_coord(num_nodes_, 0.0), x_fine(fine_nodes, 0.0);
-  InnerProdVector y_coord(num_nodes_, 0.0), y_fine(fine_nodes, 0.0);  
+  InnerProdVector y_coord(num_nodes_, 0.0), y_fine(fine_nodes, 0.0);
   InnerProdVector area(num_nodes_, 0.0), area_fine(fine_nodes, 0.0);
   InnerProdVector press(num_nodes_, 0.0), press_fine(fine_nodes, 0.0);
 
@@ -178,7 +163,7 @@ void AeroStructMDA::GridTest() {
   for (int i = 0; i < num_nodes_; i++) {
     // evenly spaced nodes along the x
     x_coord(i) = i*length/(num_nodes_-1);
-    y_coord(i) = 0.25*(1.0 - x_coord(i))*x_coord(i);    
+    y_coord(i) = 0.25*(1.0 - x_coord(i))*x_coord(i);
   }
 
   csm_.set_u(u_csm);
@@ -247,7 +232,7 @@ void AeroStructMDA::GridTest() {
     x_fine(i) = i*length/(fine_nodes-1);
     y_fine(i) = 0.25*(1.0 - x_fine(i))*x_fine(i);
   }
-  
+
   // set material properties
   csm_fine.set_material(E, t, w, h);
   // create the CSM mesh
@@ -255,11 +240,11 @@ void AeroStructMDA::GridTest() {
   // set the nodal degrees of freedom
   csm_fine.SetBoundaryConds(BCtype, BCval);
 
-  csm_fine.set_press(press_fine); // alternatively use cfd_.get_press() 
+  csm_fine.set_press(press_fine); // alternatively use cfd_.get_press()
   csm_fine.Solve();
   //csm_fine.set_u(csm_fine.get_u());  // this is redundant now (for this test)
   csm_fine.CalcCoordsAndArea();
-  
+
   cfd_.set_area(csm_fine.get_area());
   cfd_.WriteTecplot(1.0, 1.0, "refined_csm_area.dat");
 
@@ -279,7 +264,7 @@ void AeroStructMDA::InitializeCFD(const InnerProdVector & x_coord,
   double area_left = area(0);
   double area_right = area(num_nodes_-1);
   double rho, rho_u, e;
-  CalcFlowExact(kGamma, kRGas, kAreaStar, area_left, true, 
+  CalcFlowExact(kGamma, kRGas, kAreaStar, area_left, true,
                 kTempStag, kPressStag, rho, rho_u, e);
   double rho_ref = rho;
   double press = (kGamma - 1.0)*(e - 0.5*rho_u*rho_u/rho);
@@ -292,13 +277,13 @@ void AeroStructMDA::InitializeCFD(const InnerProdVector & x_coord,
                 kTempStag, kPressStag, rho, rho_u, e);
   double rho_R = rho/rho_ref;
   double rho_u_R = rho_u/(a_ref*rho_ref);
-  double e_R =  e/(rho_ref*a_ref*a_ref); 
+  double e_R =  e/(rho_ref*a_ref*a_ref);
 
   // set boundary and initial conditions
   cfd_.set_bc_left(rho_L, rho_u_L, e_L);
   cfd_.InitialCondition(rho_R, rho_u_R, e_R);
   cfd_.set_bc_right(rho_R, rho_u_R, e_R);
-  
+
   // define any discretization and solver parameters
   cfd_.set_diss_coeff(0.04);
 
@@ -334,23 +319,23 @@ void AeroStructMDA::InitializeCSM(const InnerProdVector & x_coord,
 // ======================================================================
 
 void AeroStructMDA::CalcResidual()
-{ 
+{
   // Reset CSM coordinates back to the original geometry
   //csm_.ResetCoords();
-  
-  // Split system u into CSM and CFD vectors  
+
+  // Split system u into CSM and CFD vectors
   InnerProdVector u_cfd(3*num_nodes_, 0.0), u_csm(3*num_nodes_, 0.0);
   for (int i = 0; i < 3*num_nodes_; i++) {
     u_cfd(i) = u_(i);
     u_csm(i) = u_(3*num_nodes_+i);
   }
-  
+
   // Update the discipline vectors
   cfd_.set_q(u_cfd);                 // set the flow variables
   csm_.set_u(u_csm);                 // set the nodal displacements
 
   // CFD Operations
-  csm_.CalcCoordsAndArea();         // calculate the displaced x,y and area  
+  csm_.CalcCoordsAndArea();         // calculate the displaced x,y and area
   cfd_.set_area(csm_.get_area());   // set the area
   cfd_.set_x_coord(csm_.get_x());   // set the nodal x coordinates
   cfd_.CalcResidual();              // calculate the CFD residual
@@ -364,11 +349,11 @@ void AeroStructMDA::CalcResidual()
   csm_.CalcResidual();               // calculate the CSM residual
 
   //csm_.ResetCoords();
-  
+
   // Retreive the discipline residuals
   const InnerProdVector & v_cfd = cfd_.get_res();
   const InnerProdVector & v_csm = csm_.get_res();
-  
+
   // Merge the disciplines into the system residual
   for (int i=0; i<3*num_nodes_; i++) {
     v_(i) = v_cfd(i);
@@ -412,7 +397,7 @@ void AeroStructMDA::BuildAndFactorPreconditioner() {
 
 int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
 {
-  kona::MatrixVectorProduct<InnerProdVector>* 
+  kona::MatrixVectorProduct<InnerProdVector>*
       mat_vec = new AeroStructProduct(this);
   kona::Preconditioner<InnerProdVector>*
       precond = new AeroStructPrecond(this);
@@ -424,7 +409,7 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
   cfd_.NewtonKrylov(max_iter, tol);
   cfd_.WriteTecplot(1.0, 1.0, "undeformed_flow.dat");
 #endif
-  
+
   int iter = 0;
   int precond_calls = 0;
   double norm0;
@@ -442,7 +427,7 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
       scale_csm_ = 1.0;
       return precond_calls;
     }
-    
+
 #if 0
     // reset CSM grid to original geometry before peforming JacobianVectorProduct
     csm_.ResetCoords();
@@ -454,10 +439,10 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
     // scale residual
     CalcRowScaling(b);
     ScaleVector(b);
-    
+
     // Update CFD preconditioner
     cfd_.BuildAndFactorPreconditioner();
-    
+
     // solve for the Newton update du and add to u
     int m = 10000;
     double krylov_tol = std::min(0.1, norm/norm0);
@@ -476,7 +461,7 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
 
     // update the individual discipline states
     double damp = 1.00;
-    u_ += damp*du;    
+    u_ += damp*du;
 
     precond_calls += krylov_precond_calls;
     iter++;
@@ -495,17 +480,17 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
 int AeroStructMDA::SolveLinearized(const int & max_iter, const double & tol,
                                    const InnerProdVector & rhs,
                                    InnerProdVector & sol) {
-  kona::MatrixVectorProduct<InnerProdVector>* 
+  kona::MatrixVectorProduct<InnerProdVector>*
       mat_vec = new AeroStructProduct(this);
   kona::Preconditioner<InnerProdVector>*
       precond = new AeroStructPrecond(this);
-   
+
   string filename = "mda_linearized_krylov.dat";
   ofstream fout(filename.c_str());
 
   // Update CFD preconditioner
   cfd_.BuildAndFactorPreconditioner();
-  
+
   sol = 0.0;
   int precond_calls = 0;
   kona::FGMRES(max_iter, tol, rhs, sol, *mat_vec, *precond,
@@ -519,17 +504,17 @@ int AeroStructMDA::SolveLinearized(const int & max_iter, const double & tol,
 int AeroStructMDA::SolveAdjoint(const int & max_iter, const double & tol,
                                 const InnerProdVector & dJdu,
                                 InnerProdVector & psi) {
-  kona::MatrixVectorProduct<InnerProdVector>* 
+  kona::MatrixVectorProduct<InnerProdVector>*
       mat_vec = new AeroStructTransposeProduct(this);
   kona::Preconditioner<InnerProdVector>*
       precond = new AeroStructTransposePrecond(this);
-  
+
   string filename = "mda_adjoint_krylov.dat";
   ofstream fout(filename.c_str());
 
   // Update CFD preconditioner
   cfd_.BuildAndFactorPreconditioner();
-  
+
   psi = 0.0;
   int precond_calls = 0;
   kona::FGMRES(max_iter, tol, dJdu, psi, *mat_vec, *precond,
@@ -544,7 +529,7 @@ int AeroStructMDA::SolveAdjoint(const int & max_iter, const double & tol,
 void AeroStructMDA::TestMDAProduct()
 {
   // create a random vector to apply Jacobian to
-  InnerProdVector u(6*num_nodes_, 0.0), v(6*num_nodes_, 0.0), 
+  InnerProdVector u(6*num_nodes_, 0.0), v(6*num_nodes_, 0.0),
       v_fd(6*num_nodes_, 0.0), u_save(6*num_nodes_, 0.0);
   boost::random::mt19937 gen;
   boost::random::uniform_real_distribution<double> dist(-1.0, 1.0);
@@ -554,20 +539,20 @@ void AeroStructMDA::TestMDAProduct()
   // set the row scaling
   scale_cfd_ = 1.0;
   scale_csm_ = 1.0;
-  
+
   u_save = u_;  // save the state for later
   double ref_save = p_ref_;
   p_ref_ = 1.0;
-  
-  kona::MatrixVectorProduct<InnerProdVector>* 
-      mat_vec = new AeroStructProduct(this);  
+
+  kona::MatrixVectorProduct<InnerProdVector>*
+      mat_vec = new AeroStructProduct(this);
   (*mat_vec)(u, v);
   delete mat_vec;
-  
+
   // evaluate residual and save
   CalcResidual();
   v_fd = v_;
-  
+
   // perturb flow and re-evaluate residual
   double fd_eps = 1.E-5;
   u_ += fd_eps*u;
@@ -590,7 +575,7 @@ void AeroStructMDA::TestMDAProduct()
     cout << "delta v(" << i << ") = " << u(i) << endl;
   }
 #endif
-  
+
   double L2_error = u.Norm2();
   cout << "TestMDAProduct: "
        << "L2 error between analytical and FD Jacobian-vector product: "
@@ -606,7 +591,7 @@ void AeroStructMDA::TestMDAProduct()
 void AeroStructMDA::TestMDATransposedProduct()
 {
   // create a random vector to apply Jacobian to
-  InnerProdVector u(6*num_nodes_, 0.0), v(6*num_nodes_, 0.0), 
+  InnerProdVector u(6*num_nodes_, 0.0), v(6*num_nodes_, 0.0),
       w(6*num_nodes_, 0.0);
   boost::random::mt19937 gen;
   boost::random::uniform_real_distribution<double> dist(-1.0, 1.0);
@@ -615,28 +600,28 @@ void AeroStructMDA::TestMDATransposedProduct()
     u(i) = dist(gen);
     v(i) = dist(gen);
   }
-  
+
   double ref_save = p_ref_;
   p_ref_ = 1.0;
-  
+
   // set the row scaling
   scale_cfd_ = 1.0;
   scale_csm_ = 1.0;
-  
-  kona::MatrixVectorProduct<InnerProdVector>* 
-      mat_vec = new AeroStructProduct(this);  
+
+  kona::MatrixVectorProduct<InnerProdVector>*
+      mat_vec = new AeroStructProduct(this);
   (*mat_vec)(u, w);
   delete mat_vec;
 
   double forward_prod = InnerProd(v, w);
 
-  kona::MatrixVectorProduct<InnerProdVector>* 
-      trans_mat_vec = new AeroStructTransposeProduct(this);  
+  kona::MatrixVectorProduct<InnerProdVector>*
+      trans_mat_vec = new AeroStructTransposeProduct(this);
   (*trans_mat_vec)(v, w);
-  delete trans_mat_vec;  
-  
+  delete trans_mat_vec;
+
   double reverse_prod = InnerProd(w, u);
-  
+
   cout << "TestMDATranposedProduct: "
        << "error between forward and reverse products: "
        << forward_prod - reverse_prod << endl;
@@ -680,7 +665,7 @@ void AeroStructMDA::Calc_dSdB_Product(InnerProdVector & in, InnerProdVector & ou
   InnerProdVector wrk2(num_nodes_, 0.0);
   csm_.Calc_dydA_Product(wrk1, wrk2);           // (dy/dA)*(dA/dB)*in
   csm_.CalcCmplx_dSdy_Product(wrk2, out);          // (dS/dy)*(dy/dA)*(dA/dB)*in
-#if 0  
+#if 0
   InnerProdVector out_tmp(3*num_nodes_, 0.0);
   csm_.CalcFD_dSdy_Product(wrk2, out_tmp);
   cout << "dSdy*u difference:" << endl;
@@ -759,8 +744,8 @@ void AeroStructMDA::CalcInverseDesigndJdQ(InnerProdVector & dJdQ) {
 
 // ======================================================================
 
-void AeroStructProduct::operator()(const InnerProdVector & u, 
-                                   InnerProdVector & v) 
+void AeroStructProduct::operator()(const InnerProdVector & u,
+                                   InnerProdVector & v)
 {
   // decompose u into its cfd and csm parts, and create some work arrays
   int nnp = mda_->num_nodes_;
@@ -811,8 +796,8 @@ void AeroStructProduct::operator()(const InnerProdVector & u,
 
 // ======================================================================
 
-void AeroStructTransposeProduct::operator()(const InnerProdVector & u, 
-                                            InnerProdVector & v) 
+void AeroStructTransposeProduct::operator()(const InnerProdVector & u,
+                                            InnerProdVector & v)
 {
   // decompose u into its cfd and csm parts, and create some work arrays
   int nnp = mda_->num_nodes_;
@@ -822,12 +807,12 @@ void AeroStructTransposeProduct::operator()(const InnerProdVector & u,
 
   // Scale input
   v = u;
-  //mda_->ScaleVector(v);  
+  //mda_->ScaleVector(v);
   for (int i = 0; i < 3*nnp; i++) {
     u_cfd(i) = v(i);
     u_csm(i) = v(3*nnp+i);
   }
-  
+
   // Denote the Aerostructural Jacobian-vector product by
   //    | A^T  C^T | | u_cfd | = | v_cfd |
   //    | B^T  D   | | u_csm |   | v_csm |
@@ -850,7 +835,7 @@ void AeroStructTransposeProduct::operator()(const InnerProdVector & u,
   mda_->cfd_.CalcDPressDQTransposedProduct(wrk, u_cfd);
   u_cfd *= mda_->p_ref_;
   v_cfd += u_cfd;
-  
+
   // Finally, assemble v from its cfd and csm parts
   for (int i = 0; i < 3*nnp; i++) {
     v(i) = v_cfd(i);
@@ -880,8 +865,8 @@ void AeroStructPrecond::operator()(InnerProdVector & u, InnerProdVector & v)
   mda_->csm_.Calc_dAdu_Product(v_csm, wrk);
   mda_->cfd_.JacobianAreaProduct(wrk, v_cfd);
   u_cfd.EqualsAXPlusBY(1.0, u_cfd, -1.0, v_cfd);
-  
-  // inherit the preconditioner calculated at every iteration for the CFD  
+
+  // inherit the preconditioner calculated at every iteration for the CFD
   mda_->cfd_.Precondition(u_cfd, v_cfd);
 
   // Compute v_csm = u_csm - C*v_cfd
@@ -898,7 +883,7 @@ void AeroStructPrecond::operator()(InnerProdVector & u, InnerProdVector & v)
   mda_->cfd_.Precondition(u_cfd, v_cfd);
 
 #endif
-  
+
   // merge the preconditioners and pass it up
   for (int i = 0; i < 3*nnp; i++) {
     v(i) = v_cfd(i);
@@ -928,8 +913,8 @@ void AeroStructTransposePrecond::operator()(InnerProdVector & u, InnerProdVector
   mda_->csm_.Calc_dAdu_Product(v_csm, wrk);
   mda_->cfd_.JacobianAreaProduct(wrk, v_cfd);
   u_cfd.EqualsAXPlusBY(1.0, u_cfd, -1.0, v_cfd);
-  
-  // inherit the preconditioner calculated at every iteration for the CFD  
+
+  // inherit the preconditioner calculated at every iteration for the CFD
   mda_->cfd_.Precondition(u_cfd, v_cfd);
 
   // Compute v_csm = u_csm - C*v_cfd
@@ -944,9 +929,9 @@ void AeroStructTransposePrecond::operator()(InnerProdVector & u, InnerProdVector
   v_csm = mda_->csm_.get_u();
   //v_csm = u_csm;
   mda_->cfd_.PreconditionTransposed(u_cfd, v_cfd);
-  
+
 #endif
-  
+
   // merge the preconditioners and pass it up
   for (int i = 0; i < 3*nnp; i++) {
     v(i) = v_cfd(i);

@@ -9,10 +9,22 @@
 
 #include <math.h>
 
+#include <ostream>
+#include <iostream>
+#include <fstream>
+#include <string>
+
+#include <boost/random/mersenne_twister.hpp>
+#include <boost/random/uniform_real_distribution.hpp>
+
 #include "./quasi_1d_euler/nozzle.hpp"
 #include "./quasi_1d_euler/inner_prod_vector.hpp"
 #include "./quasi_1d_euler/quasi_1d_euler.hpp"
+#include "./quasi_1d_euler/exact_solution.hpp"
 #include "./linear_elastic_csm/lecsm.hpp"
+
+#include "./constants.hpp"
+#include "./krylov.hpp"
 
 // forward declarations
 class AeroStructProduct;
@@ -34,7 +46,7 @@ public:
    * \param[in] euler_solver - a Quasi1DEuler solver (defines product)
    */
   AeroStructMDA(int num_nodes, int order):
-      u_(6*num_nodes,0.0), 
+      u_(6*num_nodes,0.0),
       v_(6*num_nodes,0.0),
       cfd_(num_nodes, order),
       csm_(num_nodes) {
@@ -51,7 +63,7 @@ public:
    * \param[in] nozzle - BsplineNozzle the defines the area
    */
   AeroStructMDA(int num_nodes, int order, Nozzle & nozzle):
-      u_(6*num_nodes,0.0), 
+      u_(6*num_nodes,0.0),
       v_(6*num_nodes,0.0),
       cfd_(num_nodes, order),
       csm_(num_nodes) {
@@ -73,7 +85,7 @@ public:
    * \brief extract the MDA residual vector
    */
   InnerProdVector & get_res() { return v_; }
-  
+
   /*!
    * \brief define the MDA solution vector
    */
@@ -88,7 +100,7 @@ public:
    * \brief uses the MDA state in u_ to update the cfd and csm states
    */
   void UpdateDisciplineStates();
-  
+
   /*!
    * \brief defines the target pressure based on current pressure in cfd_
    */
@@ -98,12 +110,12 @@ public:
    * \brief set the CFD and CSM initial condition for an NK MDA solve
    */
   void SetInitialCondition();
-  
+
   /*!
    * \brief updates the discipline geometries based on the MDA nozzle object
    */
   void UpdateFromNozzle();
-  
+
   /*!
    * \brief defines a sample Bspline-free MDA test problem
    */
@@ -113,7 +125,7 @@ public:
    * \brief tests grid-dependence on the aero-structural solution
    */
   void GridTest();
-  
+
   /*!
    * \brief sets up the CFD solver for the MDA evaluation
    */
@@ -140,7 +152,7 @@ public:
    * \param[in] res - nonlinear MDA equation residual
    */
   void CalcRowScaling(const InnerProdVector & res);
-  
+
   /*!
    * \brief applies scaling to the cfd and csm components of u
    * \param[in,out] u - vector to be scaled
@@ -148,7 +160,7 @@ public:
   void ScaleVector(InnerProdVector & u);
 
   void BuildAndFactorPreconditioner();
-  
+
   /*!
    * \brief solves the aero-structural system with a Newton Krylow algorithm
    * \param[in] max_iter - maximum number of iterations permitted
@@ -168,7 +180,7 @@ public:
   int SolveLinearized(const int & max_iter, const double & tol,
                       const InnerProdVector & rhs,
                       InnerProdVector & sol);
-  
+
   /*!
    * \brief solves for the coupled adjoint variables using a Krylov solver
    * \param[in] max_iter - maximum number of iterations permitted
@@ -180,7 +192,7 @@ public:
   int SolveAdjoint(const int & max_iter, const double & tol,
                    const InnerProdVector & dJdu,
                    InnerProdVector & psi);
-  
+
   /*!
    * \brief tests the AeroStructProduct using a finite-difference approximation
    * \pre the state defined in u_ must be "reasonable"
@@ -192,7 +204,7 @@ public:
    * \pre the state defined in u_ must be "reasonable"
    */
   void TestMDATransposedProduct();
-  
+
   /*!
    * \brief prints out nodal displacements of the system design
    */
@@ -295,12 +307,12 @@ public:
   AeroStructProduct(AeroStructMDA * mda) { mda_ = mda; }
 
   ~AeroStructProduct() {}
-  
+
   void operator()(const InnerProdVector & u, InnerProdVector & v);
-  
+
 private:
   AeroStructMDA * mda_;
-}; 
+};
 
 // ======================================================================
 
@@ -315,12 +327,12 @@ public:
   AeroStructTransposeProduct(AeroStructMDA * mda) { mda_ = mda; }
 
   ~AeroStructTransposeProduct() {}
-  
+
   void operator()(const InnerProdVector & u, InnerProdVector & v);
-  
+
 private:
   AeroStructMDA * mda_;
-}; 
+};
 
 // ======================================================================
 
@@ -340,7 +352,7 @@ public:
 
 private:
   AeroStructMDA * mda_;
-}; 
+};
 
 // ======================================================================
 
@@ -360,4 +372,4 @@ public:
 
 private:
   AeroStructMDA * mda_;
-}; 
+};

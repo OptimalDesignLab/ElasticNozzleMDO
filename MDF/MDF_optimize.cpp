@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
     num_design = atoi(argv[1]);
     cout << "Running design with " << num_design << " design vars." << endl;
   }
-  
+
   // define the target area
   InnerProdVector x_coord(nodes, 0.0);
   InnerProdVector y_coord(nodes, 0.0);
@@ -88,9 +88,9 @@ int main(int argc, char *argv[])
 #if 0
   // calculate the y coordinates based on the nodal areas
   for (int i = 0; i < nodes; i++)
-  	y_coord(i) = 0.5*(height - (area(i)/width));  
+  	y_coord(i) = 0.5*(height - (area(i)/width));
 #endif
-  
+
   // define CSM nodal degrees of freedom
   InnerProdVector BCtype(3*nodes, 0.0);
   InnerProdVector BCval(3*nodes, 0.0);
@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
   solver.GetTecplot(1.0, 1.0);
   throw(-1);
 #endif
-  
+
   solver.SetDesignVars(num_design);
 
   // run the optimizer
@@ -130,16 +130,16 @@ int main(int argc, char *argv[])
   KonaOptimize(userFunc, optns);
   int solver_precond_calls = 0;
   int kona_precond_calls = 0;
-    
+
   cout << "Total solver precond calls: " << solver_precond_calls << endl;
   cout << "Total Kona precond calls:   " << kona_precond_calls << endl;
-  cout << "Ratio of precond calls:     " 
+  cout << "Ratio of precond calls:     "
        << ( static_cast<double>(kona_precond_calls)
             /static_cast<double>(solver_precond_calls) ) << endl;
 
   solver.NewtonKrylov(20, tol);
   solver.GetTecplot(1.0, 1.0);
-  
+
   // plot results?
 }
 
@@ -343,7 +343,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
         iwrk[0] = 0; // no precondition calls
         solver.set_u(state[j]);
         solver.UpdateFromNozzle();
-      }      
+      }
       dwrk[0] = solver.CalcInverseDesign();
       cout << "objective function = " << dwrk[0] << endl;
       break;
@@ -398,8 +398,8 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       solver.set_u(state[j]);
       solver.UpdateDisciplineStates();
       solver.UpdateFromNozzle();
-      kona::MatrixVectorProduct<InnerProdVector>* 
-          mat_vec = new AeroStructProduct(&solver);  
+      kona::MatrixVectorProduct<InnerProdVector>*
+          mat_vec = new AeroStructProduct(&solver);
       (*mat_vec)(state[k], state[m]);
       delete mat_vec;
       break;
@@ -436,7 +436,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       solver.set_u(state[j]);
       solver.UpdateDisciplineStates();
       solver.UpdateFromNozzle();
-      kona::MatrixVectorProduct<InnerProdVector>* 
+      kona::MatrixVectorProduct<InnerProdVector>*
           mat_vec = new AeroStructTransposeProduct(&solver);
       (*mat_vec)(state[k], state[m]);
       delete mat_vec;
@@ -465,7 +465,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       assert((j >= 0) && (j < num_state_vec));
       assert((k >= 0) && (k < num_state_vec));
       assert((m >= 0) && (m < num_state_vec));
-      kona::Preconditioner<InnerProdVector>* 
+      kona::Preconditioner<InnerProdVector>*
           mat_vec = new AeroStructPrecond((&solver));
       (*mat_vec)(state[k], state[m]);
       delete mat_vec;
@@ -481,7 +481,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       assert((j >= 0) && (j < num_state_vec));
       assert((k >= 0) && (k < num_state_vec));
       assert((m >= 0) && (m < num_state_vec));
-      kona::Preconditioner<InnerProdVector>* 
+      kona::Preconditioner<InnerProdVector>*
           mat_vec = new AeroStructTransposePrecond((&solver));
       (*mat_vec)(state[k], state[m]);
       delete mat_vec;
@@ -529,7 +529,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       int i = iwrk[0];
       assert((i >= 0) && (i < num_design_vec));
       //design[i] = 0.0; // all coefficients set to zero
-      
+
       // in case the nozzle has not been initiated
       design[i] = 1.0;
       nozzle_shape.SetCoeff(design[i]);
@@ -547,7 +547,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       for (int n = 0; n < num_design; n++)
         cout << design[i](n) << " ";
       cout << endl;
-      
+
       break;
     }
     case kona::solve: { // solve the primal equations
@@ -573,14 +573,14 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       assert((i >= 0) && (i < num_design_vec));
       assert((j >= 0) && (j < num_state_vec));
       assert((k >= 0) && (k < num_state_vec));
-      assert((m >= 0) && (m < num_state_vec));      
+      assert((m >= 0) && (m < num_state_vec));
       nozzle_shape.SetCoeff(design[i]);
       solver.set_u(state[j]);
       solver.UpdateDisciplineStates();
       solver.UpdateFromNozzle();
       iwrk[0] = solver.SolveLinearized(10000, adj_tol, state[k], state[m]);
       break;
-    }      
+    }
     case kona::adjsolve: {// solve the adjoint equations
       int i = iwrk[0];
       int j = iwrk[1];
@@ -593,13 +593,13 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       solver.set_u(state[j]);
       solver.UpdateDisciplineStates();
       solver.UpdateFromNozzle();
-      if (k == -1) {      
+      if (k == -1) {
         InnerProdVector dJdu(num_var, 0.0);
         solver.CalcInverseDesigndJdQ(dJdu);
         dJdu *= -1.0;
         iwrk[0] = solver.SolveAdjoint(10000, adj_tol, dJdu, state[m]);
       } else {
-        assert((k >= 0) && (k < num_state_vec));        
+        assert((k >= 0) && (k < num_state_vec));
         iwrk[0] = solver.SolveAdjoint(10000, adj_tol, state[k], state[m]);
       }
       iwrk[1] = -10; // TEMP
@@ -626,7 +626,7 @@ int userFunc(int request, int leniwrk, int *iwrk, int lendwrk,
       solver.UpdateDisciplineStates();
       std::string filename = "BFGS_inner_iter_$num.dat";
       solver.GetTecplot(1.0, 1.0);
-      
+
       break;
     }
     default: {

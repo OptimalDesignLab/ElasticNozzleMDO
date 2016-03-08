@@ -5,14 +5,16 @@
 # ignore object files and modules
 *.[o]
 *.mod
+*.so*
 
 # ignore temporary files created by emacs, etc.
 *~
 \#*
+.clang_complete
 
 # text and latex files
-*.aux 
-*.dvi 
+*.aux
+*.dvi
 *.toc
 *.log
 *.ps
