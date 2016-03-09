@@ -39,12 +39,12 @@ static vector<InnerProdVector> design;    // design vectors
 static vector<InnerProdVector> state;     // state vectors
 
 // discretization parameters
-static const int num_var = 6*nodes;
+static int nodes;
+static int num_var;
 static int num_design;
-static int num_state;
 
 static BsplineNozzle nozzle_shape;
-static AeroStructMDA solver(nodes, order, nozzle_shape);
+static AeroStructMDA solver;
 
 // function declarations
 double InitNozzleArea(const double & x);
@@ -58,8 +58,9 @@ double MeshCoord(const double & length, const int & num_nodes,
 /* ====================== */
 
 // general
-void init_mda(int py_num_design);
-void alloc_mem(int py_num_design_vec, int py_num_state_vec);
+void init_mda(int py_num_design, int py_nodes);
+void alloc_design(int py_num_design_vec);
+void alloc_state(int py_num_state_vec);
 void init_design(int store_here);
 void info_dump(int at_design, int at_state, int adjoint, int iter);
 

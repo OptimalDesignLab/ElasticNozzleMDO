@@ -44,12 +44,20 @@ double TargetNozzleArea(const double & x) {
 
 // ======================================================================
 
-void init_mda(int py_num_design)
+void init_mda(int py_num_design, int py_nodes)
 {
   // set number of design variables
   assert(py_num_design > 0);
   num_design = py_num_design;
-  cout << "Running design with " << num_design << " design vars." << endl;
+  assert((py_nodes == 61) || (py_nodes = 121));
+  nodes = py_nodes;
+  num_var = 6*nodes;
+  cout << "# of design = " << num_design << endl;
+  cout << "# of nodes  = " << nodes << endl;
+  cout << "# of state  = " << num_var << endl;
+
+  // initialize the solver
+  solver = AeroStructMDA(nodes, order, nozzle_shape);
 
   // define the target area
   InnerProdVector x_coord(nodes, 0.0);
@@ -111,10 +119,9 @@ void init_mda(int py_num_design)
   solver.SetDesignVars(num_design);
 }
 
-void alloc_mem(int py_num_design_vec, int py_num_state_vec)
+void alloc_design(int py_num_design_vec)
 {
   assert(py_num_design_vec >= 0);
-  assert(py_num_state_vec >= 0);
   if (num_design_vec >= 0) { // free design memory first
     if (design.size() == 0) {
       cerr << "userFunc: "
@@ -123,6 +130,16 @@ void alloc_mem(int py_num_design_vec, int py_num_state_vec)
     }
     design.clear();
   }
+  num_design_vec = py_num_design_vec;
+  design.resize(num_design_vec);
+  for (int i = 0; i < num_design_vec; i++)
+    design[i].resize(num_design);
+}
+
+void alloc_state(int py_num_state_vec)
+{
+  assert(py_num_state_vec >= 0);
+
   if (num_state_vec >= 0) { // free state memory first
     if (state.size() == 0) {
       cerr << "userFunc: "
@@ -131,10 +148,7 @@ void alloc_mem(int py_num_design_vec, int py_num_state_vec)
     }
     state.clear();
   }
-  num_design_vec = py_num_design_vec;
-  design.resize(num_design_vec);
-  for (int i = 0; i < num_design_vec; i++)
-    design[i].resize(num_design);
+  num_state_vec = py_num_state_vec;
   state.resize(num_state_vec);
   for (int i = 0; i < num_state_vec; i++)
     state[i].resize(num_var);
@@ -300,7 +314,7 @@ void times_vector_s(int i, int j)
   assert((i >= 0) && (i < num_state_vec));
   assert((j >= 0) && (j < num_state_vec));
   int n;
-  for (n = 0; n < num_state; n++)
+  for (n = 0; n < num_var; n++)
     state[i](n) *= state[j](n);
 }
 
@@ -308,7 +322,7 @@ void exp_s(int i)
 {
   assert((i >= 0) && (i < num_state_vec));
   int n;
-  for (n = 0; n < num_state; n++)
+  for (n = 0; n < num_var; n++)
     state[i](n) = exp(state[i](n));
 }
 
@@ -316,7 +330,7 @@ void log_s(int i)
 {
   assert((i >= 0) && (i < num_state_vec));
   int n;
-  for (n = 0; n < num_state; n++)
+  for (n = 0; n < num_var; n++)
     state[i](n) = log(state[i](n));
 }
 
@@ -324,7 +338,7 @@ void pow_s(int i, double p)
 {
   assert((i >= 0) && (i < num_state_vec));
   int n;
-  for (n = 0; n < num_state; n++)
+  for (n = 0; n < num_var; n++)
     state[i](n) = pow(state[i](n), p);
 }
 
@@ -536,7 +550,8 @@ BOOST_PYTHON_MODULE(aerostructMDF)
   using namespace boost::python;
 
   def("init_mda", init_mda);
-  def("alloc_mem", alloc_mem);
+  def("alloc_design", alloc_design);
+  def("alloc_state", alloc_state);
   def("init_design", init_design);
   def("info_dump", info_dump);
 

@@ -19,9 +19,6 @@ const double area_mid = 1.5; //1.8; //
 const double y_left = 0.5*(height - area_left/width);
 const double y_right = 0.5*(height - area_right/width);
 
-// discretization parameters
-const int nodes = 61; //121; // 61;
-
 // CFD discretization parameters
 const int order = 3;
 const bool sbp_quad = true; // use SBP norm for quadrature

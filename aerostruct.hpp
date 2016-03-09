@@ -42,6 +42,11 @@ class AeroStructMDA {
 public:
 
   /*!
+   * \brief empty constructor
+   */
+  AeroStructMDA() {}
+
+  /*!
    * \brief default constructor
    * \param[in] euler_solver - a Quasi1DEuler solver (defines product)
    */
