@@ -12,6 +12,7 @@
 \#*
 .clang_complete
 *.pyc
+*.gch
 
 # text and latex files
 *.aux

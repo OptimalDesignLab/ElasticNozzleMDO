@@ -63,6 +63,33 @@ void AeroStructMDA::SetInitialCondition() {
 
 // ======================================================================
 
+void AeroStructMDA::SetInitialConditionIntoVec(InnerProdVector & vec) {
+  // set initial condition in CFD
+  double rho, rho_u, e;
+  CalcFlowExact(kGamma, kRGas, kAreaStar, area_left, true,
+                kTempStag, kPressStag, rho, rho_u, e);
+  double rho_ref = rho;
+  double press = (kGamma - 1.0)*(e - 0.5*rho_u*rho_u/rho);
+  double a_ref = sqrt(kGamma*press/rho_ref);
+  CalcFlowExact(kGamma, kRGas, kAreaStar, area_right, true,
+                kTempStag, kPressStag, rho, rho_u, e);
+  double rho_R = rho/rho_ref;
+  double rho_u_R = rho_u/(a_ref*rho_ref);
+  double e_R =  e/(rho_ref*a_ref*a_ref);
+
+  // set initial condition guess
+  vec = 0.0;
+  // initialize the CFD part of the aerostructural solution guess
+  // NOTE: this is needed, because CalcResidual resets the cfd q variables
+  for (int i = 0; i < num_nodes_; i++) {
+    vec(3*i) = rho_R;
+    vec(3*i+1) = rho_u_R;
+    vec(3*i+2) = e_R;
+  }
+}
+
+// ======================================================================
+
 void AeroStructMDA::UpdateFromNozzle()
 {
   // evenly spaced x-coordinates along the length of nozzle

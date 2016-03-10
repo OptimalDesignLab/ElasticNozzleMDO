@@ -117,6 +117,11 @@ public:
   void SetInitialCondition();
 
   /*!
+   * \brief set the CFD and CSM initial condition for an NK MDA solve
+   */
+  void SetInitialConditionIntoVec(InnerProdVector & vec);
+
+  /*!
    * \brief updates the discipline geometries based on the MDA nozzle object
    */
   void UpdateFromNozzle();

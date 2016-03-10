@@ -472,7 +472,6 @@ void factor_precond(int at_design, int at_state)
   solver.set_u(state[at_state]);
   solver.UpdateDisciplineStates();
   solver.UpdateFromNozzle();
-  cout << "BuildAndFactorPreconditioner called" << endl;
   solver.BuildAndFactorPreconditioner();
 }
 
@@ -529,7 +528,7 @@ int solve_linear(int at_design, int at_state, int rhs, int result, double rel_to
   solver.set_u(state[at_state]);
   solver.UpdateDisciplineStates();
   solver.UpdateFromNozzle();
-  cout << "SolveLinear started" << endl;
+  state[result] = 0.0;
   return solver.SolveLinearized(10000, rel_tol, state[rhs], state[result]);
 }
 
@@ -543,7 +542,7 @@ int solve_adjoint(int at_design, int at_state, int rhs, int result, double rel_t
   solver.set_u(state[at_state]);
   solver.UpdateDisciplineStates();
   solver.UpdateFromNozzle();
-  cout << "SolveAdjoint started" << endl;
+  state[result] = 0.0;
   return solver.SolveAdjoint(10000, rel_tol, state[rhs], state[result]);
 }
 
