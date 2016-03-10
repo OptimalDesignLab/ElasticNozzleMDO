@@ -99,5 +99,5 @@ int apply_precond_t(int at_design, int at_state, int in_vec, int out_vec);
 
 // solutions
 int solve_nonlinear(int at_design, int store_here);
-int solve_linear(int at_design, int at_state, int rhs, int result);
-int solve_adjoint(int at_design, int at_state, int rhs, int result);
+int solve_linear(int at_design, int at_state, int rhs, int result, double rel_tol);
+int solve_adjoint(int at_design, int at_state, int rhs, int result, double rel_tol);

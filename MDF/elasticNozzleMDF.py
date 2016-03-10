@@ -4,7 +4,7 @@ from kona.user import BaseVector, BaseAllocator, UserSolver
 
 class ENVectorDesign(BaseVector):
     def __init__(self, idx):
-        if self.idx < 0:
+        if idx < 0:
             raise ValueError('Invalid vector index!')
         self.idx = idx
 
@@ -46,7 +46,7 @@ class ENVectorDesign(BaseVector):
 
 class ENVectorState(BaseVector):
     def __init__(self, idx):
-        if self.idx < 0:
+        if idx < 0:
             raise ValueError('Invalid vector index!')
         self.idx = idx
 
@@ -105,7 +105,7 @@ class ENAllocator(BaseAllocator):
 class ElasticNozzleMDF(UserSolver):
 
     def __init__(self, ndv, nodes):
-        mda.init_MDA(ndv, nodes)
+        mda.init_mda(ndv, nodes)
         self.allocator = ENAllocator(ndv, 6*nodes, 0)
 
     def eval_obj(self, at_design, at_state):
@@ -130,10 +130,12 @@ class ElasticNozzleMDF(UserSolver):
         mda.factor_precond(at_design.idx, at_state.idx)
 
     def apply_precond(self, at_design, at_state, in_vec, out_vec):
+        mda.factor_precond(at_design.idx, at_state.idx)
         return mda.apply_precond(
             at_design.idx, at_state.idx, in_vec.idx, out_vec.idx)
 
     def apply_precond_T(self, at_design, at_state, in_vec, out_vec):
+        mda.factor_precond(at_design.idx, at_state.idx)
         return mda.apply_precond_t(
             at_design.idx, at_state.idx, in_vec.idx, out_vec.idx)
 
@@ -157,12 +159,13 @@ class ElasticNozzleMDF(UserSolver):
 
     def solve_linear(self, at_design, at_state, rhs_vec, rel_tol, result):
         return mda.solve_linear(
-            at_design.idx, at_state.idx, rhs_vec.idx, result.idx)
+            at_design.idx, at_state.idx, rhs_vec.idx, result.idx, rel_tol)
 
-    def solve_adjoint(self, at_design, at_state, rhs_vec, tol, result):
+    def solve_adjoint(self, at_design, at_state, rhs_vec, rel_tol, result):
         return mda.solve_adjoint(
-            at_design.idx, at_state.idx, rhs_vec.idx, result.idx)
+            at_design.idx, at_state.idx, rhs_vec.idx, result.idx, rel_tol)
 
     def current_solution(self, curr_design, curr_state, curr_adj,
                          curr_dual, num_iter, curr_slack):
-        mda.info_dump(curr_design.idx, curr_state.idx, curr_adj.idx, num_iter)
+        # mda.info_dump(curr_design.idx, curr_state.idx, curr_adj.idx, num_iter)
+        pass

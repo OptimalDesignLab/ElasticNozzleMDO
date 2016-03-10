@@ -182,7 +182,7 @@ void info_dump(int at_design, int at_state, int adjoint, int iter)
 {
   nozzle_shape.SetCoeff(design[at_design]);
   // uncomment to list B-spline coefficients
-  cout << "kona::info current b-spline coeffs = ";
+  cout << "kona::info current b-spline coeffs = " << endl;
   for (int n = 0; n < num_design; n++)
     cout << design[at_design](n) << " ";
   cout << endl;
@@ -472,6 +472,7 @@ void factor_precond(int at_design, int at_state)
   solver.set_u(state[at_state]);
   solver.UpdateDisciplineStates();
   solver.UpdateFromNozzle();
+  cout << "BuildAndFactorPreconditioner called" << endl;
   solver.BuildAndFactorPreconditioner();
 }
 
@@ -498,6 +499,7 @@ int apply_precond_t(int at_design, int at_state, int in_vec, int out_vec)
       mat_vec = new AeroStructTransposePrecond((&solver));
   (*mat_vec)(state[in_vec], state[out_vec]);
   delete mat_vec;
+  return 1;
 }
 
 // ======================================================================
@@ -517,7 +519,7 @@ int solve_nonlinear(int at_design, int store_here)
   return cost;
 }
 
-int solve_linear(int at_design, int at_state, int rhs, int result)
+int solve_linear(int at_design, int at_state, int rhs, int result, double rel_tol)
 {
   assert((at_design >= 0) && (at_design < num_design_vec));
   assert((at_state >= 0) && (at_state < num_state_vec));
@@ -527,10 +529,11 @@ int solve_linear(int at_design, int at_state, int rhs, int result)
   solver.set_u(state[at_state]);
   solver.UpdateDisciplineStates();
   solver.UpdateFromNozzle();
-  return solver.SolveLinearized(10000, adj_tol, state[rhs], state[result]);
+  cout << "SolveLinear started" << endl;
+  return solver.SolveLinearized(10000, rel_tol, state[rhs], state[result]);
 }
 
-int solve_adjoint(int at_design, int at_state, int rhs, int result)
+int solve_adjoint(int at_design, int at_state, int rhs, int result, double rel_tol)
 {
   assert((at_design >= 0) && (at_design < num_design_vec));
   assert((at_state >= 0) && (at_state < num_state_vec));
@@ -540,7 +543,8 @@ int solve_adjoint(int at_design, int at_state, int rhs, int result)
   solver.set_u(state[at_state]);
   solver.UpdateDisciplineStates();
   solver.UpdateFromNozzle();
-  return solver.SolveAdjoint(10000, adj_tol, state[rhs], state[result]);
+  cout << "SolveAdjoint started" << endl;
+  return solver.SolveAdjoint(10000, rel_tol, state[rhs], state[result]);
 }
 
 // ======================================================================

@@ -14,7 +14,7 @@ CXX= g++
 CPPFLAGS= -cpp -DNDEBUG -DBOOST_UBLAS_ENABLE_PROXY_SHORTCUTS -DBOOST_UBLAS_TYPE_CHECK=0
 
 # compiler options that may vary (user can change)
-CXXFLAGS= -g -fPIC
+CXXFLAGS= -g -fPIC -fpermissive
 
 # linker options
 #LDFLAGS= -lm -lstdc++ -llapack -L. -L$(BOOST_ROOT)/stage/lib -lboost_program_options  -L$#(KONA_ROOT) -lkona
