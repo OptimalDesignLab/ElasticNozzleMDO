@@ -167,5 +167,4 @@ class ElasticNozzleMDF(UserSolver):
 
     def current_solution(self, curr_design, curr_state, curr_adj,
                          curr_dual, num_iter, curr_slack):
-        # mda.info_dump(curr_design.idx, curr_state.idx, curr_adj.idx, num_iter)
-        pass
+        mda.info_dump(curr_design.idx, curr_state.idx, curr_adj.idx, num_iter)
