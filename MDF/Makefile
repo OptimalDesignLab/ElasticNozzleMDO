@@ -40,8 +40,6 @@ CSM_SRC= $(CSM_DIR)/*.cpp
 HEADERS= $(wildcard $(CFD_HEADERS) $(CSM_HEADERS) ../*.hpp)
 SOURCES= $(wildcard $(CFD_SRC) $(CSM_SRC) ../*.cpp)
 OBJS= $(SOURCES:.cpp=.o)
-BINARIES= MDA_test.bin MDF_optimize.bin
-LIBS= libaerostructmdf.so.1
 
 # implicit rule
 %.o : %.cpp $(HEADERS) Makefile
@@ -50,7 +48,7 @@ LIBS= libaerostructmdf.so.1
 
 default: all
 
-all: $(BINARIES) pylib
+all: pylib
 
 tags: $(HEADERS) $(SOURCES)
 	@echo "Creating TAGS file for emacs"
@@ -63,14 +61,6 @@ pylib: $(OBJS) aerostructMDF.o Makefile
 	-o aerostructmdf.so.1.0 aerostructMDF.o $(OBJS) $(LDFLAGS)
 	@ln -s -f aerostructmdf.so.1.0 aerostructmdf.so
 	@ln -s -f aerostructmdf.so.1.0 aerostructmdf.so.1
-
-MDA_test.bin: $(OBJS) MDA_test.o Makefile
-	@echo "Compiling \""$@"\" from \""$(OBJS)"\""
-	@$(CXX) -o $@ MDA_test.o $(OBJS) $(LDFLAGS)
-
-MDF_optimize.bin: $(OBJS) MDF_optimize.o Makefile
-	@echo "Compiling \""$@"\" from \""$(OBJS)"\""
-	@$(CXX) -o $@ MDF_optimize.o $(OBJS) $(LDFLAGS)
 
 clean:
 	@echo "deleting temporary, object, library and binary files"
