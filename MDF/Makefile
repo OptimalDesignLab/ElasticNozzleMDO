@@ -13,7 +13,7 @@ PYTHON_INCLUDES=$(shell $(PYTHON-CONFIG) --includes)
 PYTHON_LIBS=-L$(shell $(PYTHON-CONFIG) --prefix)/lib $(shell $(PYTHON-CONFIG) --libs)
 
 # get boost options
-BOOST_PREFIX=/users/denera/Developer
+BOOST_PREFIX=/usr/local
 BOOST_INCLUDES=-I$(BOOST_PREFIX)/include
 BOOST_LIBS=-L$(BOOST_PREFIX)/lib -lboost_program_options -lboost_python
 
@@ -74,10 +74,10 @@ tags: $(HEADERS) $(SOURCES)
 	@find -maxdepth 2 -iname '*.hpp' -print0 -o \
 	-iname '*.cpp' -print0 | xargs -0 etags
 
-pylib: $(OBJS) aerostructMDF.o Makefile
+pylib: $(OBJS) aerostruct_mdf.o Makefile
 	@echo "Compiling Python module for MDF"
 	@$(CXX) -shared -fPIC -Wl,-z,defs,-soname,aerostruct_mdf.so \
-	aerostructMDF.o $(OBJS) $(LDFLAGS) -o aerostruct_mdf.so
+	aerostruct_mdf.o $(OBJS) $(LDFLAGS) -o aerostruct_mdf.so
 
 clean:
 	@echo "deleting temporary, object, library and binary files"
