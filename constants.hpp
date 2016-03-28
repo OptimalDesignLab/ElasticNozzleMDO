@@ -39,4 +39,4 @@ const double obj_weight = 1.e4; //1.e5; // 1.e5 works well
 
 // tolerances for primal and adjoint problems
 const double tol = 1.e-8;
-const double adj_tol = 1.e-6; //1.e-8;
+const double adj_tol = 1.e-8; //1.e-8;

@@ -24,7 +24,7 @@ opt_optns = {
     'max_iter' : 50,
     'opt_tol' : 1e-5,
     'matrix_explicit' : True,
-    'globalization' : None,
+    'globalization' : 'trust',
 
     'trust' : {
         'init_radius' : 1.0,
@@ -47,7 +47,7 @@ opt_optns = {
         'krylov_file'   : 'kona_krylov.dat',
         'subspace_size' : 10,
         'check_res'     : True,
-        'rel_tol'       : 1e-3,
+        'rel_tol'       : 1e-2,
     },
 }
 
