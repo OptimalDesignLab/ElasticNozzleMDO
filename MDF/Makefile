@@ -4,7 +4,18 @@ SHELL = /bin/sh
 
 .SUFFIXES:
 .SUFFIXES: .cpp .o
-.PHONY: default all tags pylib MDA_test MDF_optimize clean
+.PHONY: default all tags pylib clean
+
+# get python options
+PYTHON=python
+PYTHON-CONFIG=python-config
+PYTHON_INCLUDES=$(shell $(PYTHON-CONFIG) --includes)
+PYTHON_LIBS=-L$(shell $(PYTHON-CONFIG) --prefix)/lib $(shell $(PYTHON-CONFIG) --libs)
+
+# get boost options
+BOOST_PREFIX=/users/denera/Developer
+BOOST_INCLUDES=-I$(BOOST_PREFIX)/include
+BOOST_LIBS=-L$(BOOST_PREFIX)/lib -lboost_program_options -lboost_python
 
 # compiler
 CXX= g++
@@ -17,12 +28,12 @@ CPPFLAGS= -cpp -DNDEBUG -DBOOST_UBLAS_ENABLE_PROXY_SHORTCUTS -DBOOST_UBLAS_TYPE_
 CXXFLAGS= -g -fPIC -fpermissive
 
 # linker options
-#LDFLAGS= -lm -lstdc++ -llapack -L. -L$(BOOST_ROOT)/stage/lib -lboost_program_options  -L$#(KONA_ROOT) -lkona
-LDFLAGS= -lboost_program_options -lboost_python -lm -lstdc++ -llapack -lblas -lpython2.7
+#LDFLAGS= -lm -lstdc++ -llapack -L. -L$(BOOST_ROOT)/lib -lboost_program_options  -L$#(KONA_ROOT) -lkona
+LDFLAGS= $(PYTHON_LIBS) $(BOOST_LIBS) -lm -lstdc++ -llapack -lblas
 
 # options that DO NOT vary
-#ALL_CXXFLAGS= -I. $(CXXFLAGS) -I$(BOOST_ROOT) -I$(KONA_ROOT)/src
-ALL_CXXFLAGS= -I. $(CXXFLAGS) -I/usr/include/python2.7
+#ALL_CXXFLAGS= -I. $(CXXFLAGS) -I$(BOOST_ROOT)
+ALL_CXXFLAGS= $(CXXFLAGS) -I. $(PYTHON_INCLUDES) $(BOOST_INCLUDES)
 
 # directories
 CFD_DIR=../Quasi1DEuler
@@ -47,6 +58,14 @@ OBJS= $(SOURCES:.cpp=.o)
 	@$(CXX) $(CPPFLAGS) $(ALL_CXXFLAGS) -o $@ -c $<
 
 default: all
+	@echo "Python includes:"
+	@echo $(PYTHON_INCLUDES)
+	@echo "Python libs:"
+	@echo $(PYTHON_LIBS)
+	@echo "Boost includes:"
+	@echo $(BOOST_INCLUDES)
+	@echo "Boost libs:"
+	@echo $(BOOST_LIBS)
 
 all: pylib
 
@@ -57,10 +76,8 @@ tags: $(HEADERS) $(SOURCES)
 
 pylib: $(OBJS) aerostructMDF.o Makefile
 	@echo "Compiling Python module for MDF"
-	@$(CXX) -shared -fPIC -Wl,-z,defs,-soname,aerostructmdf.so.1 \
-	-o aerostructmdf.so.1.0 aerostructMDF.o $(OBJS) $(LDFLAGS)
-	@ln -s -f aerostructmdf.so.1.0 aerostructmdf.so
-	@ln -s -f aerostructmdf.so.1.0 aerostructmdf.so.1
+	@$(CXX) -shared -fPIC -Wl,-z,defs,-soname,aerostruct_mdf.so \
+	aerostructMDF.o $(OBJS) $(LDFLAGS) -o aerostruct_mdf.so
 
 clean:
 	@echo "deleting temporary, object, library and binary files"

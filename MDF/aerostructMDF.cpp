@@ -548,7 +548,7 @@ int solve_adjoint(int at_design, int at_state, int rhs, int result, double rel_t
 
 // ======================================================================
 
-BOOST_PYTHON_MODULE(aerostructMDF)
+BOOST_PYTHON_MODULE(aerostruct_mdf)
 {
   using namespace boost::python;
 

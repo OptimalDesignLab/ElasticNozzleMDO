@@ -1,5 +1,5 @@
 import numpy as np
-import aerostructMDF as mda
+import aerostruct_mdf as mda
 from kona.user import BaseVector, BaseAllocator, UserSolver
 
 class ENVectorDesign(BaseVector):
