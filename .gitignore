@@ -41,3 +41,6 @@
 
 # executables
 *.bin
+
+# Atom editor SSH sync file
+.sync-config.cson
