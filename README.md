@@ -1,28 +1,30 @@
-#Multi-disciplinary Elastic Nozzle Problem
+Authors: Prof. Jason Hicken, Alp Dener
+Rensselaer Polytechnic Institute
+Optimal Design Lab
+Summer/Fall 2013, C/C++
+_________________________________________________________________________________
+AERO STRUCTURAL MULTIDISCIPLINARY ANALYSIS PROGRAM
 
-This is an aero-structural analysis code for an elastic nozzle problem.
+Ongoing work on coupling Alp Dener's computational structural mechanics program 
+(2D beam) with Prof. Jason Hicken's Quasi 1D Euler flow solver.
 
-The structural analysis is done via 2D beam-elements. The flow analysis is
-quasi-1D Euler.
+LECSM: https://bitbucket.org/odl/linear-elasticity-csm
+Quasi 1D Euler: https://bitbucket.org/odl/quasi1d-euler
+_________________________________________________________________________________
+DEPENDENCIES
 
-The repository includes both MDF and IDF coupling.
++ Boost 1.55:
+http://www.boost.org/users/history/version_1_55_0.html
 
-The solver is intended to be used with the Kona optimization library.
++ Kona Optimization Library:
+https://bitbucket.org/odl/kona
+_________________________________________________________________________________
+COMPILING AERO STRUCTURAL MDA:
 
-##Dependencies
+BOOST_HOME and KONA_HOME environment variables must be set to Boost includes
+directory and Kona root directory respectively. If dependencies are installed
+properly, the test solver MDA_test.bin should compile.
 
-+ [Boost 1.55](http://www.boost.org/users/history/version_1_55_0.html)
+Installation has been verified on Ubuntu 12.04 LTS Desktop with GCC4.8
+(ppa:ubuntu-toolchain-r/test)
 
-    + Boost.Python
-    + Boost.Program_options
-
-+ [Python 2.7](https://www.python.org/download/releases/2.7/)
-
-+ [Kona Optimization Library](https://github.com/OptimalDesignLab/Kona)
-
-##Compiling
-
-Edit the ``Makefile`` so that ``BOOST_PREFIX`` points to the Boost install
-directory. Invoke ``Makefile`` to build the shared object.
-
-``opt_run.py`` will run the Kona optimization or verification.
