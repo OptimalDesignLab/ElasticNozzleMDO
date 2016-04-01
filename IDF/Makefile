@@ -1,72 +1,87 @@
-# makefile for quasi_1d_euler
+# makefile for the Aero-Struct MDF Optimization project
 
 SHELL = /bin/sh
 
 .SUFFIXES:
 .SUFFIXES: .cpp .o
-.PHONY: default clean all
+.PHONY: default all tags pylib clean
+
+# get python options
+PYTHON=python
+PYTHON-CONFIG=python-config
+PYTHON_INCLUDES=$(shell $(PYTHON-CONFIG) --includes)
+PYTHON_LIBS=-L$(shell $(PYTHON-CONFIG) --prefix)/lib $(shell $(PYTHON-CONFIG) --libs)
+
+# get boost options
+BOOST_PREFIX=/users/denera/Developer
+BOOST_INCLUDES=-I$(BOOST_PREFIX)/include
+BOOST_LIBS=-L$(BOOST_PREFIX)/lib -lboost_program_options -lboost_python
 
 # compiler
 CXX= g++
 
 # c preprocessor options
-CPPFLAGS= -cpp -DNDEBUG -DBOOST_UBLAS_ENABLE_PROXY_SHORTCUTS -DBOOST_UBLAS_TYPE_CHECK=0
 #CPPFLAGS= -cpp -DDEBUG -DBOOST_UBLAS_ENABLE_PROXY_SHORTCUTS
+CPPFLAGS= -cpp -DNDEBUG -DBOOST_UBLAS_ENABLE_PROXY_SHORTCUTS -DBOOST_UBLAS_TYPE_CHECK=0
 
 # compiler options that may vary (user can change)
-#CXXFLAGS= -g
-CXXFLAGS= 
-BOOST_ROOT= $(BOOST_HOME)
-KONA_ROOT= $(KONA_HOME)
+CXXFLAGS= -g -fPIC -O3
 
 # linker options
-# NOTE: -L is for linking, -Wl,-rpath is for loading
-#LDFLAGS= -lstdc++ -L$(KONA_ROOT) -Wl,-rpath,$(KONA_ROOT) -lkona
-#LDFLAGS= -lm -lstdc++ -L$(BOOST_ROOT)/stage/lib -lboost_program_options \
-#	-L$(KONA_ROOT) -lkona
-LDFLAGS= -Wl,-rpath=$(KONA_ROOT) -L$(KONA_ROOT) -lkona
+#LDFLAGS= -lm -lstdc++ -llapack -L. -L$(BOOST_ROOT)/lib -lboost_program_options  -L$#(KONA_ROOT) -lkona
+LDFLAGS= $(PYTHON_LIBS) $(BOOST_LIBS) -lm -lstdc++ -llapack -lblas
 
 # options that DO NOT vary
-ALL_CXXFLAGS= -I. $(CXXFLAGS) -I$(KONA_ROOT)/boost  -I $(KONA_ROOT)/src
+#ALL_CXXFLAGS= -I. $(CXXFLAGS) -I$(BOOST_ROOT)
+ALL_CXXFLAGS= $(CXXFLAGS) -I. $(PYTHON_INCLUDES) $(BOOST_INCLUDES)
 
 # directories
-CFD_DIR=../quasi_1d_euler
-CSM_DIR=../linear_elastic_csm
-MDA_DIR=..
+CFD_DIR=../Quasi1DEuler
+CSM_DIR=../LECSM
 
 # headers
-CFD_HEADERS= $(wildcard $(CFD_DIR)/*.hpp)
-CSM_HEADERS= $(wildcard $(CSM_DIR)/*.hpp)
-MDA_HEADERS= $(wildcard $(MDA_DIR)/*.hpp)
-HEADERS_ALL= $(CFD_HEADERS) $(CSM_HEADERS) $(MDA_HEADERS)
+CFD_HEADERS= $(CFD_DIR)/*.hpp
+CSM_HEADERS= $(CSM_DIR)/*.hpp
 
 # source files
-CFD_SOURCES= $(wildcard $(CFD_DIR)/*.cpp)
-CSM_SOURCES= $(wildcard $(CSM_DIR)/*.cpp)
-MDA_SOURCES= $(wildcard $(MDA_DIR)/*.cpp)
-SOURCES_ALL= $(CFD_SOURCES) $(CSM_SOURCES) $(MDA_SOURCES)
+CFD_SRC= $(CFD_DIR)/*.cpp
+CSM_SRC= $(CSM_DIR)/*.cpp
 
-# object files
-OBJS_ALL= $(SOURCES_ALL:.cpp=.o)
-
-# executables
-BINARIES= IDF_test.bin
+# source and object file names
+HEADERS= $(wildcard $(CFD_HEADERS) $(CSM_HEADERS) ../*.hpp)
+SOURCES= $(wildcard $(CFD_SRC) $(CSM_SRC) ../*.cpp)
+OBJS= $(SOURCES:.cpp=.o)
 
 # implicit rule
-%.o : %.cpp $(HEADERS_ALL) Makefile
+%.o : %.cpp $(HEADERS) Makefile
 	@echo "Compiling \""$@"\" from \""$<"\""
 	@$(CXX) $(CPPFLAGS) $(ALL_CXXFLAGS) -o $@ -c $<
 
 default: all
+	@echo "Python includes:"
+	@echo $(PYTHON_INCLUDES)
+	@echo "Python libs:"
+	@echo $(PYTHON_LIBS)
+	@echo "Boost includes:"
+	@echo $(BOOST_INCLUDES)
+	@echo "Boost libs:"
+	@echo $(BOOST_LIBS)
 
-all: $(BINARIES)
+all: pylib
 
-IDF_test.bin: $(OBJS_ALL) idf.o Makefile
-	@echo "Compiling \""$@"\" from \""$(OBJS_ALL)"\""
-	@$(CXX) -o $@ idf.o $(OBJS_ALL) $(LDFLAGS)
+tags: $(HEADERS) $(SOURCES)
+	@echo "Creating TAGS file for emacs"
+	@find -maxdepth 2 -iname '*.hpp' -print0 -o \
+	-iname '*.cpp' -print0 | xargs -0 etags
+
+pylib: $(OBJS) aerostruct_idf.o Makefile
+	@echo "Compiling Python module for IDF"
+	@$(CXX) -shared -fPIC -Wl,-z,defs,-soname,aerostruct_idf.so \
+	aerostruct_idf.o $(OBJS) $(LDFLAGS) -o aerostruct_idf.so
 
 clean:
-	@echo "deleting temporary, object, and binary files"
+	@echo "deleting temporary, object, library and binary files"
 	@rm -f *~
 	@rm -f $(BINARIES)
-	@rm -f $(OBJS_ALL)
+	@rm -f $(OBJS) *.o
+	@rm -f *.so*

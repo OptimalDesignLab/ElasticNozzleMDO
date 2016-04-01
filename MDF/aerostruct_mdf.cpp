@@ -8,6 +8,8 @@
 #include "./aerostruct_mdf.hpp"
 
 // ======================================================================
+// HELPER FUNCTIONS
+// ======================================================================
 
 double MeshCoord(const double & length, const int & num_nodes,
                  const int & i) {
@@ -42,6 +44,8 @@ double TargetNozzleArea(const double & x) {
 #endif
 }
 
+// ======================================================================
+// SOLVER AND MEMORY INITIALIZATION
 // ======================================================================
 
 void init_mda(int py_num_design, int py_nodes)
@@ -193,6 +197,8 @@ void info_dump(int at_design, int at_state, int adjoint, int iter)
   solver.GetTecplot(1.0, 1.0);
 }
 
+// ======================================================================
+// LINEAR ALGEBRA
 // ======================================================================
 
 void axpby_d(int i, double scalj, int j, double scalk, int k)
@@ -350,6 +356,8 @@ double inner_s(int i, int j)
 }
 
 // ======================================================================
+// OBJECTIVE OPERATIONS
+// ======================================================================
 
 boost::python::tuple eval_f(int at_design, int at_state)
 {
@@ -389,6 +397,8 @@ void eval_dfdw(int at_design, int at_state, int store_here)
   solver.CalcInverseDesigndJdQ(state[store_here]);
 }
 
+// ======================================================================
+// RESIDUAL OPERATIONS
 // ======================================================================
 
 void eval_r(int at_design, int at_state, int store_here)
@@ -462,8 +472,6 @@ void mult_drdw_t(int at_design, int at_state, int in_vec, int out_vec)
   delete mat_vec;
 }
 
-// ======================================================================
-
 void factor_precond(int at_design, int at_state)
 {
   assert((at_design >= 0) && (at_design < num_design_vec));
@@ -501,6 +509,8 @@ int apply_precond_t(int at_design, int at_state, int in_vec, int out_vec)
   return 1;
 }
 
+// ======================================================================
+// SOLVER OPERATIONS
 // ======================================================================
 
 int solve_nonlinear(int at_design, int store_here)
@@ -546,6 +556,8 @@ int solve_adjoint(int at_design, int at_state, int rhs, int result, double rel_t
   return solver.SolveAdjoint(10000, rel_tol, state[rhs], state[result]);
 }
 
+// ======================================================================
+// BOOST PYTHON MODULE DECLARATION
 // ======================================================================
 
 BOOST_PYTHON_MODULE(aerostruct_mdf)
