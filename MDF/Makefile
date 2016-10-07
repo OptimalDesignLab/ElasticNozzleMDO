@@ -13,7 +13,7 @@ PYTHON_INCLUDES=$(shell $(PYTHON-CONFIG) --includes)
 PYTHON_LIBS=-L$(shell $(PYTHON-CONFIG) --prefix)/lib $(shell $(PYTHON-CONFIG) --libs)
 
 # get boost options
-BOOST_PREFIX=/users/denera/Developer
+BOOST_PREFIX=/fasttmp/denera/miniconda2
 BOOST_INCLUDES=-I$(BOOST_PREFIX)/include
 BOOST_LIBS=-L$(BOOST_PREFIX)/lib -lboost_program_options -lboost_python
 

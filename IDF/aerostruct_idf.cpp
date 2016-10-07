@@ -211,10 +211,8 @@ void SetAreaCnstr(const int & i, const InnerProdVector & ceq_area) {
 // SOLVER AND MEMORY INITIALIZATION
 // ======================================================================
 
-void init_mda(int py_num_design, int py_nodes, bool py_rand_init)
+void init_mda(int py_num_design, int py_nodes)
 {
-  rand_init = py_rand_init;
-
   assert(py_num_design > 0);
   assert((py_nodes == 61) || (py_nodes = 121));
   nodes = py_nodes;
@@ -358,21 +356,6 @@ void init_design(int store_here)
   nozzle_shape.FitNozzle(x_coord, area);
   nozzle_shape.GetCoeff(pts);
 
-  if (rand_init) {
-    // randomly perturb the initial design and area
-    typedef boost::random::mt19937 generator_type;
-    generator_type gen(static_cast<unsigned int>(std::time(0)));
-    boost::random::uniform_real_distribution<double> dist(-0.25, 0.25);
-    //boost::random::uniform_real_distribution<double> dist(-5, 5);
-    boost::variate_generator<generator_type&,
-                             boost::random::uniform_real_distribution<double> >
-        uni(gen, dist);
-    for (int n = 0; n < num_bspline; n++)
-      pts(n) *= (1.0 + uni());
-    for (int n = 0; n < nodes; n++)
-      area(n) *= (1.0 + uni());
-  }
-
   cout << "after initializing nozzle_shape..." << endl;
   SetBsplinePts(store_here, pts);
   SetCouplingArea(store_here, area);
@@ -383,19 +366,6 @@ void init_design(int store_here)
   int cost = cfd_solver.NewtonKrylov(100, 1.e-6);
   cfd_solver.WriteTecplot(1.0, 1.0, "init_pressure_area.dat");
   press = cfd_solver.get_press();
-
-  if (rand_init) {
-    // randomly perturb the initial pressure
-    typedef boost::random::mt19937 generator_type;
-    generator_type gen(static_cast<unsigned int>(std::time(0)));
-    boost::random::uniform_real_distribution<double> dist(-0.25, 0.25);
-    //boost::random::uniform_real_distribution<double> dist(-5, 5);
-    boost::variate_generator<generator_type&,
-                             boost::random::uniform_real_distribution<double> >
-        uni(gen, dist);
-    for (int n = 0; n < nodes; n++)
-      press(n) *= (1.0 + uni());
-  }
 
   SetCouplingPress(store_here, press);
   cout << "kona::initdesign design coeff = ";
@@ -431,10 +401,10 @@ void info_dump(int at_design, int at_state, int at_adjoint, int iter)
   cfd_solver.WriteTecplot(1.0, 1.0, "csm_area.dat");
 
   // uncomment to list B-spline coefficients
-  cout << "before kona::info set_area: design coeff = ";
-  for (int n = 0; n < num_bspline; n++)
-    cout << design[at_design](n) << " ";
-  cout << endl;
+  // cout << "before kona::info set_area: design coeff = ";
+  // for (int n = 0; n < num_bspline; n++)
+  //   cout << design[at_design](n) << " ";
+  // cout << endl;
 
 #if 0
   string filename("flow_at_opt_iter");
@@ -445,6 +415,43 @@ void info_dump(int at_design, int at_state, int at_adjoint, int iter)
   cfd_solver.WriteTecplot(1.0, 1.0, filename);
   opt_iter++;
 #endif
+}
+
+// ======================================================================
+// DATA I/O
+// ======================================================================
+
+void set_design_data(int idx, pyublas::numpy_vector<double> data)
+{
+  design[idx] = InnerProdVector(data.as_ublas());
+}
+
+pyublas::numpy_vector<double> get_design_data(int idx)
+{
+  return pyublas::numpy_vector<double>(
+    static_cast<ublas::vector<double> >(design[idx]));
+}
+
+void set_state_data(int idx, pyublas::numpy_vector<double> data)
+{
+  state[idx] = InnerProdVector(data.as_ublas());
+}
+
+pyublas::numpy_vector<double> get_state_data(int idx)
+{
+  return pyublas::numpy_vector<double>(
+    static_cast<ublas::vector<double> >(state[idx]));
+}
+
+void set_dual_data(int idx, pyublas::numpy_vector<double> data)
+{
+  dual[idx] = InnerProdVector(data.as_ublas());
+}
+
+pyublas::numpy_vector<double> get_dual_data(int idx)
+{
+  return pyublas::numpy_vector<double>(
+    static_cast<ublas::vector<double> >(dual[idx]));
 }
 
 // ======================================================================
@@ -1350,6 +1357,13 @@ BOOST_PYTHON_MODULE(aerostruct_idf)
   def("alloc_dual", alloc_dual);
   def("init_design", init_design);
   def("info_dump", info_dump);
+
+  def("set_design_data", set_design_data);
+  def("get_design_data", get_design_data);
+  def("set_state_data", set_state_data);
+  def("get_state_data", get_state_data);
+  def("set_dual_data", set_state_data);
+  def("get_dual_data", get_state_data);
 
   def("axpby_d", axpby_d);
   def("times_vector_d", times_vector_d);

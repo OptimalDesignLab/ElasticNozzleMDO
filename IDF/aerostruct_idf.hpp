@@ -21,6 +21,8 @@
 
 #include <boost/python.hpp>
 
+#include <pyublas/numpy.hpp>
+
 #include "../Quasi1DEuler/inner_prod_vector.hpp"
 #include "../Quasi1DEuler/exact_solution.hpp"
 #include "../Quasi1DEuler/nozzle.hpp"
@@ -50,7 +52,6 @@ static vector<InnerProdVector> dual;      // dual vectors
 // design parameters
 static int num_design; // total number of design vars (control points + coupling)
 static int num_bspline; // number of b-spline control points
-static bool rand_init; // randomly perturb the initial design
 
 // some vector sizes
 static int nodes;
@@ -120,12 +121,20 @@ void SetAreaCnstr(const int & i, const InnerProdVector & ceq_area);
 /* ====================== */
 
 // general
-void init_mda(int py_num_design, int py_nodes, bool py_rand_init);
+void init_mda(int py_num_design, int py_nodes);
 void alloc_design(int py_num_design_vec);
 void alloc_state(int py_num_state_vec);
 void alloc_dual(int py_num_dual_vec);
 void init_design(int store_here);
 void info_dump(int at_design, int at_state, int adjoint, int iter);
+
+// io functions
+void set_design_data(int idx, pyublas::numpy_vector<double> data);
+void set_state_data(int idx, pyublas::numpy_vector<double> data);
+void set_dual_data(int idx, pyublas::numpy_vector<double> data);
+pyublas::numpy_vector<double> get_design_data(int idx);
+pyublas::numpy_vector<double> get_state_data(int idx);
+pyublas::numpy_vector<double> get_dual_data(int idx);
 
 // design vec linalg
 void axpby_d(int i, double scalj, int j, double scalk, int k);

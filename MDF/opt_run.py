@@ -1,5 +1,6 @@
 import sys
 import kona
+import numpy as np
 from elasticNozzleMDF import ElasticNozzleMDF
 
 solver = ElasticNozzleMDF(20, 121)
@@ -21,15 +22,22 @@ verifier_optns = {
 
 opt_optns = {
     'info_file' : sys.stdout,
-    'max_iter' : 50,
+    'max_iter' : 25,
     'opt_tol' : 1e-5,
     'matrix_explicit' : True,
-    'globalization' : 'trust',
 
     'trust' : {
-        'init_radius' : 1.0,
+        'init_radius' : 0.5,
         'max_radius' : 4.0,
         'min_radius' : 1e-4,
+    },
+
+    'homotopy' : {
+        'lambda' : 0.0,
+        'inner_tol' : 1e-2,
+        'inner_maxiter' : 50,
+        'nominal_step' : 1.0,
+        'nominal_angle' : 5.0*np.pi/180.,
     },
 
     'rsnk' : {
@@ -51,10 +59,11 @@ opt_optns = {
     },
 }
 
-#verifier = kona.algorithms.Verifier
-#optimizer = kona.Optimizer(solver, verifier, verifier_optns)
+# verifier = kona.algorithms.Verifier
+# optimizer = kona.Optimizer(solver, verifier, verifier_optns)
 
-algorithm = kona.algorithms.STCG_RSNK
+# algorithm = kona.algorithms.STCG_RSNK
+algorithm = kona.algorithms.PredictorCorrector
 optimizer = kona.Optimizer(solver, algorithm, opt_optns)
 
 optimizer.solve()

@@ -186,15 +186,114 @@ void info_dump(int at_design, int at_state, int adjoint, int iter)
 {
   nozzle_shape.SetCoeff(design[at_design]);
   // uncomment to list B-spline coefficients
-  cout << "kona::info current b-spline coeffs = " << endl;
-  for (int n = 0; n < num_design; n++)
-    cout << design[at_design](n) << " ";
-  cout << endl;
+  // cout << "kona::info current b-spline coeffs = " << endl;
+  // for (int n = 0; n < num_design; n++)
+  //   cout << design[at_design](n) << " ";
+  // cout << endl;
   solver.UpdateFromNozzle();
   solver.set_u(state[at_state]);
   solver.UpdateDisciplineStates();
-  std::string filename = "BFGS_inner_iter_$num.dat";
   solver.GetTecplot(1.0, 1.0);
+  // std::stringstream ss;
+  // std::string filename;
+  // ss << "inner_iter_" << iter << ".dat";
+  // ss >> filename;
+  // solver.GetTecplot(1.0, 1.0, filename);
+}
+
+// ======================================================================
+// DATA I/O
+// ======================================================================
+
+pyublas::numpy_vector<double> get_init_design()
+{
+  // get some work vectors
+  InnerProdVector init_nozzle(num_design, 0.0);
+
+  // define the target area
+  InnerProdVector x_coord(nodes, 0.0);
+  InnerProdVector area(nodes, 0.0);
+  for (int i = 0; i < nodes; i++) {
+    // create uniform spaced x coordinates
+    x_coord(i) = MeshCoord(length, nodes, i);
+    area(i) = InitNozzleArea(x_coord(i)/length);
+  }
+
+  // set coefficients in case the nozzle has not been initialized
+  nozzle_shape.SetCoeff(init_nozzle);
+
+  // define the Bspline for the nozzle
+  nozzle_shape.FitNozzle(x_coord, area);
+
+  // extract target nozzle shape
+  nozzle_shape.GetCoeff(init_nozzle);
+
+  // return out the target nozzle shape
+  return pyublas::numpy_vector<double>(
+    static_cast<ublas::vector<double> >(init_nozzle));
+}
+
+pyublas::numpy_vector<double> get_current_design()
+{
+  // get some work vectors
+  InnerProdVector curr_nozzle(num_design, 0.0);
+
+  // extract current nozzle shape
+  nozzle_shape.GetCoeff(curr_nozzle);
+
+  // return out the target nozzle shape
+  return pyublas::numpy_vector<double>(
+    static_cast<ublas::vector<double> >(curr_nozzle));
+}
+
+pyublas::numpy_vector<double> get_target_design()
+{
+  // get some work vectors
+  InnerProdVector targ_nozzle(num_design, 0.0);
+
+  // define the target area
+  InnerProdVector x_coord(nodes, 0.0);
+  InnerProdVector area(nodes, 0.0);
+  for (int i = 0; i < nodes; i++) {
+    // create uniform spaced x coordinates
+    x_coord(i) = MeshCoord(length, nodes, i);
+    area(i) = TargetNozzleArea(x_coord(i));
+  }
+
+  // set coefficients in case the nozzle has not been initialized
+  nozzle_shape.SetCoeff(targ_nozzle);
+
+  // define the Bspline for the nozzle
+  nozzle_shape.FitNozzle(x_coord, area);
+
+  // extract target nozzle shape
+  nozzle_shape.GetCoeff(targ_nozzle);
+
+  // return out the target nozzle shape
+  return pyublas::numpy_vector<double>(
+    static_cast<ublas::vector<double> >(targ_nozzle));
+}
+
+void set_design_data(int idx, pyublas::numpy_vector<double> data)
+{
+  design[idx] = InnerProdVector(data.as_ublas());
+}
+
+pyublas::numpy_vector<double> get_design_data(int idx)
+{
+  return pyublas::numpy_vector<double>(
+    static_cast<ublas::vector<double> >(design[idx]));
+}
+
+void set_state_data(int idx, pyublas::numpy_vector<double> data)
+{
+  state[idx] = InnerProdVector(data.as_ublas());
+}
+
+pyublas::numpy_vector<double> get_state_data(int idx)
+{
+  return pyublas::numpy_vector<double>(
+    static_cast<ublas::vector<double> >(state[idx]));
 }
 
 // ======================================================================
@@ -569,6 +668,14 @@ BOOST_PYTHON_MODULE(aerostruct_mdf)
   def("alloc_state", alloc_state);
   def("init_design", init_design);
   def("info_dump", info_dump);
+
+  def("get_init_design", get_init_design);
+  def("get_current_design", get_current_design);
+  def("get_target_design", get_target_design);
+  def("set_design_data", set_design_data);
+  def("get_design_data", get_design_data);
+  def("set_state_data", set_state_data);
+  def("get_state_data", get_state_data);
 
   def("axpby_d", axpby_d);
   def("times_vector_d", times_vector_d);

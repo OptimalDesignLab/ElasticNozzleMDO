@@ -19,6 +19,8 @@
 #include <boost/math/constants/constants.hpp>
 #include <boost/python.hpp>
 
+#include <pyublas/numpy.hpp>
+
 #include "../aerostruct.hpp"
 #include "../constants.hpp"
 
@@ -61,6 +63,13 @@ double MeshCoord(const double & length, const int & num_nodes,
 void init_mda(int py_num_design, int py_nodes);
 void alloc_design(int py_num_design_vec);
 void alloc_state(int py_num_state_vec);
+pyublas::numpy_vector<double> get_init_design();
+pyublas::numpy_vector<double> get_current_design();
+pyublas::numpy_vector<double> get_target_design();
+void set_design_data(int idx, pyublas::numpy_vector<double> data);
+pyublas::numpy_vector<double> get_design_data(int idx);
+void set_state_data(int idx, pyublas::numpy_vector<double> data);
+pyublas::numpy_vector<double> get_state_data(int idx);
 void init_design(int store_here);
 void info_dump(int at_design, int at_state, int adjoint, int iter);
 

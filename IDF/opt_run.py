@@ -1,4 +1,5 @@
 import sys
+import numpy as np
 import kona
 from elasticNozzleIDF import ElasticNozzleIDF
 
@@ -23,22 +24,23 @@ opt_optns = {
     'info_file' : sys.stdout,
     'max_iter' : 50,
     'opt_tol' : 1e-5,
+    'feas_tol' : 1e-5,
     'matrix_explicit' : True,
-    'globalization' : 'trust',
 
-    'trust' : {
-        'init_radius' : 1.0,
-        'max_radius' : 4.0,
-        'min_radius' : 1e-4,
-    },
+    'homotopy' : {
+                'inner_tol' : 1e-2,
+                'inner_maxiter' : 20,
+                'nominal_dist' : 1.0,
+                'nominal_angle' : 15.0*np.pi/180.,
+            },
 
     'rsnk' : {
-        'precond'       : None,
+        'precond'       : 'idf_schur',
         # rsnk algorithm settings
         'dynamic_tol'   : False,
-        'nu'            : 0.95,
+        'nu'            : 1.0,
         # reduced KKT matrix settings
-        'product_fac'   : 0.001,
+        'product_fac'   : 300.0,
         'lambda'        : 0.0,
         'scale'         : 1.0,
         'grad_scale'    : 1.0,
@@ -46,15 +48,15 @@ opt_optns = {
         # krylov solver settings
         'krylov_file'   : 'kona_krylov.dat',
         'subspace_size' : 10,
-        'check_res'     : True,
+        'check_res'     : False,
         'rel_tol'       : 1e-2,
     },
 }
 
-verifier = kona.algorithms.Verifier
-optimizer = kona.Optimizer(solver, verifier, verifier_optns)
+# verifier = kona.algorithms.Verifier
+# optimizer = kona.Optimizer(solver, verifier, verifier_optns)
 
-# algorithm = kona.algorithms.FLECS_RSNK
-# optimizer = kona.Optimizer(solver, algorithm, opt_optns)
+algorithm = kona.algorithms.PredictorCorrectorCnstr
+optimizer = kona.Optimizer(solver, algorithm, opt_optns)
 
 optimizer.solve()

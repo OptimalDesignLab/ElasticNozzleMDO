@@ -16,6 +16,12 @@ DEPENDENCIES
 + Boost 1.55:
 http://www.boost.org/users/history/version_1_55_0.html
 
++ Boost Numeric Library Bindings:
+https://mathema.tician.de/software/boost-numeric-bindings/
+
++ PyUblas:
+https://mathema.tician.de/software/pyublas/
+
 + Kona Optimization Library:
 https://bitbucket.org/odl/kona
 _________________________________________________________________________________
