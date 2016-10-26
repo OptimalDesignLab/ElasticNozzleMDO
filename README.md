@@ -1,4 +1,5 @@
-# AERO STRUCTURAL MULTIDISCIPLINARY ANALYSIS PROGRAM
+## Elastic Nozzle MDO
+### Aero-Structural Analysis and Optimization
 
 A multi-disciplinary analysis and optimization code for a 2-D elastic nozzle problem.
 
@@ -10,7 +11,7 @@ The analysis code is written in C++ and an API is exposed to Python via Boost.
 The optimization problem is formulated using both the Multidisciplinary Feasible 
 (MDF) and Individual Discipline Feasible (IDF) architectures.
 
-## DEPENDENCIES
+### Dependencies
 
 + Boost C++ (1.55 or newer):
 https://www.boost.org/
@@ -24,7 +25,7 @@ https://mathema.tician.de/software/pyublas/
 + Kona Optimization Library:
 https://github.com/OptimalDesignLab/Kona
 
-## INSTALLATION
+### Installation
 
 Clone the repository including submodules using:
 
