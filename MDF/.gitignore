@@ -43,6 +43,3 @@ Makefile
 
 # sublime text stuff
 sftp-config.json
-
-# plotting tools
-plot_*
