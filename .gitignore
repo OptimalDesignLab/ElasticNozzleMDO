@@ -42,5 +42,11 @@
 # executables
 *.bin
 
-# Atom SFTP sync config
-.sync-config.cson
+# generated Makefile
+Makefile
+
+# sublime text stuff
+sftp-config.json
+
+# plotting tools
+plot_*

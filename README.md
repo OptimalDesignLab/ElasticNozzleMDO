@@ -1,20 +1,19 @@
-Authors: Prof. Jason Hicken, Alp Dener
-Rensselaer Polytechnic Institute
-Optimal Design Lab
-Summer/Fall 2013, C/C++
-_________________________________________________________________________________
-AERO STRUCTURAL MULTIDISCIPLINARY ANALYSIS PROGRAM
+# AERO STRUCTURAL MULTIDISCIPLINARY ANALYSIS PROGRAM
 
-Ongoing work on coupling Alp Dener's computational structural mechanics program 
-(2D beam) with Prof. Jason Hicken's Quasi 1D Euler flow solver.
+A multi-disciplinary analysis and optimization code for a 2-D elastic nozzle problem.
 
-LECSM: https://bitbucket.org/odl/linear-elasticity-csm
-Quasi 1D Euler: https://bitbucket.org/odl/quasi1d-euler
-_________________________________________________________________________________
-DEPENDENCIES
+The flow is analyzed using quasi-1D Euler equations, and the nozzle structure is modeled 
+using Euler-Bernoulli beam elements.
 
-+ Boost 1.55:
-http://www.boost.org/users/history/version_1_55_0.html
+The analysis code is written in C++ and an API is exposed to Python via Boost.
+
+The optimization problem is formulated using both the Multidisciplinary Feasible 
+(MDF) and Individual Discipline Feasible (IDF) architectures.
+
+## DEPENDENCIES
+
++ Boost C++ (1.55 or newer):
+https://www.boost.org/
 
 + Boost Numeric Library Bindings:
 https://mathema.tician.de/software/boost-numeric-bindings/
@@ -23,14 +22,23 @@ https://mathema.tician.de/software/boost-numeric-bindings/
 https://mathema.tician.de/software/pyublas/
 
 + Kona Optimization Library:
-https://bitbucket.org/odl/kona
-_________________________________________________________________________________
-COMPILING AERO STRUCTURAL MDA:
+https://github.com/OptimalDesignLab/Kona
 
-BOOST_HOME and KONA_HOME environment variables must be set to Boost includes
-directory and Kona root directory respectively. If dependencies are installed
-properly, the test solver MDA_test.bin should compile.
+## INSTALLATION
 
-Installation has been verified on Ubuntu 12.04 LTS Desktop with GCC4.8
-(ppa:ubuntu-toolchain-r/test)
+Clone the repository including submodules using:
+
+```
+$ git clone --recursive git@github.com:OptimalDesignLab/ElasticNozzleMDO.git
+```
+
+Then use the configuration script in either the IDF or the MDF folder before 
+building the respective modules:
+
+```
+$ cd ElasticNozzleMDO/IDF
+$ ./configure.py --boost-prefix=/usr/local
+$ make -j4
+```
+For more options, see `./configure.py --help`.
 

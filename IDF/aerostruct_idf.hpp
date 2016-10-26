@@ -1,8 +1,3 @@
-/**
- * \file idf.cpp
- * \brief driver for a simple test of IDF solved using RSNK
- * \version 1.0
- */
 
 #include <ostream>
 #include <iostream>

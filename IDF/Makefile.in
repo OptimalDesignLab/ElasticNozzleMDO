@@ -1,39 +1,31 @@
-# makefile for the Aero-Struct MDF Optimization project
+# base makefile for the Aero-Struct MDF Optimization project
 
 SHELL = /bin/sh
 
 .SUFFIXES:
 .SUFFIXES: .cpp .o
-.PHONY: default all tags pylib clean
+.PHONY: default all pylib clean
 
 # get python options
-PYTHON=python
-PYTHON-CONFIG=python-config
-PYTHON_INCLUDES=$(shell $(PYTHON-CONFIG) --includes)
-PYTHON_LIBS=-L$(shell $(PYTHON-CONFIG) --prefix)/lib $(shell $(PYTHON-CONFIG) --libs)
+PYTHON_PREFIX=$(shell ${PYTHON_CONFIG} --prefix)
+PYTHON_INCLUDES=$(shell ${PYTHON_CONFIG} --includes)
+PYTHON_LIBS=-L$(PYTHON_PREFIX)/lib $(shell ${PYTHON_CONFIG} --libs)
 
 # get boost options
-BOOST_PREFIX=/fasttmp/denera/miniconda2
-BOOST_INCLUDES=-I$(BOOST_PREFIX)/include
-BOOST_LIBS=-L$(BOOST_PREFIX)/lib -lboost_program_options -lboost_python
-
-# compiler
-CXX= g++
+BOOST_INCLUDES=-I${BOOST_PREFIX}/include
+BOOST_LIBS=-L${BOOST_PREFIX}/lib -lboost_program_options -lboost_python
 
 # c preprocessor options
-#CPPFLAGS= -cpp -DDEBUG -DBOOST_UBLAS_ENABLE_PROXY_SHORTCUTS
 CPPFLAGS= -cpp -DNDEBUG -DBOOST_UBLAS_ENABLE_PROXY_SHORTCUTS -DBOOST_UBLAS_TYPE_CHECK=0
 
 # compiler options that may vary (user can change)
-CXXFLAGS= -g -fPIC -O3 # -fpermissive
+CXXFLAGS= -g -fPIC -O3 -fpermissive ${USER_CFLAGS}
 
 # linker options
-#LDFLAGS= -lm -lstdc++ -llapack -L. -L$(BOOST_ROOT)/lib -lboost_program_options  -L$#(KONA_ROOT) -lkona
 LDFLAGS= $(PYTHON_LIBS) $(BOOST_LIBS) -lm -lstdc++ -llapack -lblas
 
 # options that DO NOT vary
-#ALL_CXXFLAGS= -I. $(CXXFLAGS) -I$(BOOST_ROOT)
-ALL_CXXFLAGS= $(CXXFLAGS) -I. $(PYTHON_INCLUDES) $(BOOST_INCLUDES)
+ALL_CXXFLAGS= $(CXXFLAGS) -I. -I$(PYTHON_PREFIX)/include $(PYTHON_INCLUDES) $(BOOST_INCLUDES)
 
 # directories
 CFD_DIR=../Quasi1DEuler
@@ -55,7 +47,7 @@ OBJS= $(SOURCES:.cpp=.o)
 # implicit rule
 %.o : %.cpp $(HEADERS) Makefile
 	@echo "Compiling \""$@"\" from \""$<"\""
-	@$(CXX) $(CPPFLAGS) $(ALL_CXXFLAGS) -o $@ -c $<
+	@${CXX} $(CPPFLAGS) $(ALL_CXXFLAGS) -o $@ -c $<
 
 default: all
 	@echo "Python includes:"
@@ -69,14 +61,9 @@ default: all
 
 all: pylib
 
-tags: $(HEADERS) $(SOURCES)
-	@echo "Creating TAGS file for emacs"
-	@find -maxdepth 2 -iname '*.hpp' -print0 -o \
-	-iname '*.cpp' -print0 | xargs -0 etags
-
 pylib: $(OBJS) aerostruct_idf.o Makefile
 	@echo "Compiling Python module for IDF"
-	@$(CXX) -shared -fPIC -Wl,-z,defs,-soname,aerostruct_idf.so \
+	@${CXX} -shared -fPIC -Wl,-z,defs,-soname,aerostruct_idf.so \
 	aerostruct_idf.o $(OBJS) $(LDFLAGS) -o aerostruct_idf.so
 
 clean:

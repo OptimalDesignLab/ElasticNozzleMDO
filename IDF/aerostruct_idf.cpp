@@ -423,33 +423,39 @@ void info_dump(int at_design, int at_state, int at_adjoint, int iter)
 
 void set_design_data(int idx, pyublas::numpy_vector<double> data)
 {
+  assert(data.as_ublas().size() == num_design);
   design[idx] = InnerProdVector(data.as_ublas());
 }
 
 pyublas::numpy_vector<double> get_design_data(int idx)
 {
+  assert(design[idx].size() == num_design);
   return pyublas::numpy_vector<double>(
     static_cast<ublas::vector<double> >(design[idx]));
 }
 
 void set_state_data(int idx, pyublas::numpy_vector<double> data)
 {
+  assert(data.as_ublas().size() == num_var);
   state[idx] = InnerProdVector(data.as_ublas());
 }
 
 pyublas::numpy_vector<double> get_state_data(int idx)
 {
+  assert(state[idx].size() == num_var);
   return pyublas::numpy_vector<double>(
     static_cast<ublas::vector<double> >(state[idx]));
 }
 
 void set_dual_data(int idx, pyublas::numpy_vector<double> data)
 {
+  assert(data.as_ublas().size() == num_ceq);
   dual[idx] = InnerProdVector(data.as_ublas());
 }
 
 pyublas::numpy_vector<double> get_dual_data(int idx)
 {
+  assert(dual[idx].size() == num_ceq);
   return pyublas::numpy_vector<double>(
     static_cast<ublas::vector<double> >(dual[idx]));
 }
@@ -538,78 +544,78 @@ double inner_d(int i, int j)
 
 void axpby_s(int i, double scalj, int j, double scalk, int k)
 {
-  assert((i >= 0) && (i < num_state_vec));
-  assert(j < num_state_vec);
-  assert(k < num_state_vec);
+    assert((i >= 0) && (i < num_state_vec));
+    assert(j < num_state_vec);
+    assert(k < num_state_vec);
 
-  if (j == -1) {
-    if (k == -1) { // if both indices = -1, then all elements = scalj
-      state[i] = scalj;
+    if (j == -1) {
+        if (k == -1) { // if both indices = -1, then all elements = scalj
+            state[i] = scalj;
 
-    } else { // if just j = -1 ...
-      if (scalk == 1.0) {
-        // direct copy of vector k with no scaling
-        state[i] = state[k];
+        } else { // if just j = -1 ...
+            if (scalk == 1.0) {
+                // direct copy of vector k with no scaling
+                state[i] = state[k];
 
-      } else {
-        // scaled copy of vector k
-        state[i] = state[k];
-        state[i] *= scalk;
-      }
+            } else {
+                // scaled copy of vector k
+                state[i] = state[k];
+                state[i] *= scalk;
+            }
+        }
+    } else if (k == -1) { // if just k = -1 ...
+        if (scalj == 1.0) {
+            // direct copy of vector j with no scaling
+            state[i] = state[j];
+
+        } else {
+            // scaled copy of vector j
+            state[i] = state[j];
+            state[i] *= scalj;
+        }
+    } else { // otherwise, full axpby
+        state[i].EqualsAXPlusBY(scalj, state[j], scalk, state[k]);
     }
-  } else if (k == -1) { // if just k = -1 ...
-    if (scalj == 1.0) {
-      // direct copy of vector j with no scaling
-      state[i] = state[j];
-
-    } else {
-      // scaled copy of vector j
-      state[i] = state[j];
-      state[i] *= scalj;
-    }
-  } else { // otherwise, full axpby
-    state[i].EqualsAXPlusBY(scalj, state[j], scalk, state[k]);
-  }
 }
 
 void times_vector_s(int i, int j)
 {
-  assert((i >= 0) && (i < num_state_vec));
-  assert((j >= 0) && (j < num_state_vec));
-  int n;
-  for (n = 0; n < num_var; n++)
-    state[i](n) *= state[j](n);
+    assert((i >= 0) && (i < num_state_vec));
+    assert((j >= 0) && (j < num_state_vec));
+    int n;
+    for (n = 0; n < num_var; n++)
+        state[i](n) *= state[j](n);
 }
 
 void exp_s(int i)
 {
-  assert((i >= 0) && (i < num_state_vec));
-  int n;
-  for (n = 0; n < num_var; n++)
-    state[i](n) = exp(state[i](n));
+    assert((i >= 0) && (i < num_state_vec));
+    int n;
+    for (n = 0; n < num_var; n++)
+        state[i](n) = exp(state[i](n));
 }
 
 void log_s(int i)
 {
-  assert((i >= 0) && (i < num_state_vec));
-  int n;
-  for (n = 0; n < num_var; n++)
-    state[i](n) = log(state[i](n));
+    assert((i >= 0) && (i < num_state_vec));
+    int n;
+    for (n = 0; n < num_var; n++)
+        state[i](n) = log(state[i](n));
 }
 
 void pow_s(int i, double p)
 {
-  assert((i >= 0) && (i < num_state_vec));
-  int n;
-  for (n = 0; n < num_var; n++)
-    state[i](n) = pow(state[i](n), p);
+    assert((i >= 0) && (i < num_state_vec));
+    int n;
+    for (n = 0; n < num_var; n++)
+        state[i](n) = pow(state[i](n), p);
 }
 
 double inner_s(int i, int j)
 {
-  assert((i >= 0) && (i < num_state_vec));
-  assert((j >= 0) && (j < num_state_vec));
-  return InnerProd(state[i], state[j]);
+    assert((i >= 0) && (i < num_state_vec));
+    assert((j >= 0) && (j < num_state_vec));
+    return InnerProd(state[i], state[j]);
 }
 
 // ======================================================================
@@ -1360,10 +1366,12 @@ BOOST_PYTHON_MODULE(aerostruct_idf)
 
   def("set_design_data", set_design_data);
   def("get_design_data", get_design_data);
+
   def("set_state_data", set_state_data);
   def("get_state_data", get_state_data);
-  def("set_dual_data", set_state_data);
-  def("get_dual_data", get_state_data);
+
+  def("set_dual_data", set_dual_data);
+  def("get_dual_data", get_dual_data);
 
   def("axpby_d", axpby_d);
   def("times_vector_d", times_vector_d);
@@ -1414,4 +1422,4 @@ BOOST_PYTHON_MODULE(aerostruct_idf)
   def("solve_nonlinear", solve_nonlinear);
   def("solve_linear", solve_linear);
   def("solve_adjoint", solve_adjoint);
-}
+};

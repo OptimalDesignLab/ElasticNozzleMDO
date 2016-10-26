@@ -59,11 +59,11 @@ opt_optns = {
     },
 }
 
-# verifier = kona.algorithms.Verifier
-# optimizer = kona.Optimizer(solver, verifier, verifier_optns)
+verifier = kona.algorithms.Verifier
+optimizer = kona.Optimizer(solver, verifier, verifier_optns)
 
 # algorithm = kona.algorithms.STCG_RSNK
 algorithm = kona.algorithms.PredictorCorrector
-optimizer = kona.Optimizer(solver, algorithm, opt_optns)
+# optimizer = kona.Optimizer(solver, algorithm, opt_optns)
 
 optimizer.solve()

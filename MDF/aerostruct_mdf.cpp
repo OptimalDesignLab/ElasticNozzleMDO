@@ -708,4 +708,4 @@ BOOST_PYTHON_MODULE(aerostruct_mdf)
   def("solve_nonlinear", solve_nonlinear);
   def("solve_linear", solve_linear);
   def("solve_adjoint", solve_adjoint);
-}
+};

@@ -2,6 +2,7 @@ import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
+import pyublas
 import aerostruct_mdf as mda
 from kona.user import BaseVector, UserSolver
 from plot_nozzle import plot_nozzle
@@ -112,8 +113,8 @@ class ElasticNozzleMDF(UserSolver):
 
     def eval_dFdX(self, at_design, at_state):
         mda.set_design_data(0, at_design)
-        mda.eval_dfdx(at_design.idx, at_state.idx, 1)
-        return mda.get_design.data(1)
+        mda.eval_dfdx(0, at_state.idx, 1)
+        return mda.get_design_data(1)
 
     def eval_dFdU(self, at_design, at_state, store_here):
         mda.set_design_data(0, at_design)

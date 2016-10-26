@@ -1,6 +1,7 @@
 import numpy as np
+import pyublas
 import aerostruct_idf as mda
-from kona.user import BaseVector, BaseAllocator, UserSolverIDF
+from kona.user import BaseVector, UserSolverIDF
 from plot_nozzle import plot_nozzle
 
 class ENVectorState(BaseVector):
@@ -83,7 +84,8 @@ class ElasticNozzleIDF(UserSolverIDF):
 
     def multiply_dRdX(self, at_design, at_state, in_vec, out_vec):
         mda.set_design_data(0, at_design)
-        mda.mult_drdx(0, at_state.idx, in_vec.idx, out_vec.idx)
+        mda.set_design_data(1, in_vec)
+        mda.mult_drdx(0, at_state.idx, 1, out_vec.idx)
 
     def multiply_dRdU(self, at_design, at_state, in_vec, out_vec):
         mda.set_design_data(0, at_design)
@@ -92,7 +94,7 @@ class ElasticNozzleIDF(UserSolverIDF):
     def multiply_dRdX_T(self, at_design, at_state, in_vec):
         mda.set_design_data(0, at_design)
         mda.mult_drdx_t(0, at_state.idx, in_vec.idx, 1)
-        return mda.get_design_data(0)
+        return mda.get_design_data(1)
 
     def multiply_dRdU_T(self, at_design, at_state, in_vec, out_vec):
         mda.set_design_data(0, at_design)
@@ -165,4 +167,4 @@ class ElasticNozzleIDF(UserSolverIDF):
                          curr_eq, curr_ineq, curr_slack):
         mda.set_design_data(0, curr_design)
         mda.info_dump(0, curr_state.idx, curr_adj.idx, num_iter)
-        # plot_nozzle('nozzle_iter_%i.png'%num_iter)
+        plot_nozzle('nozzle_iter_%i.png'%num_iter)
