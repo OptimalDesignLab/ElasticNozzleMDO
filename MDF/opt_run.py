@@ -63,7 +63,7 @@ verifier = kona.algorithms.Verifier
 optimizer = kona.Optimizer(solver, verifier, verifier_optns)
 
 # algorithm = kona.algorithms.STCG_RSNK
-algorithm = kona.algorithms.PredictorCorrector
+# algorithm = kona.algorithms.PredictorCorrector
 # optimizer = kona.Optimizer(solver, algorithm, opt_optns)
 
 optimizer.solve()

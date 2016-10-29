@@ -499,7 +499,7 @@ void MINRESSolver<Vec>::Solve(const ptree & ptin, const Vec & b, Vec & x,
       // solution of a generalized eigenvalue problem, Ay = lambda My.  This is
       // highly unlikely in our context, so we ignore this
       // if (beta/beta0 <= 10.0*kEpsilon) istop = -1; // beta2 = 0 or is ~ 0
-      gmax = abs(alpha);
+      gmax = fabs(alpha);
       gmin = gmax;
     }
 
@@ -3232,7 +3232,7 @@ void modGramSchmidt(int i, vector<Vec> & w) {
 // ==============================================================================
 template <class Vec>
 double Lanczos(int m, double tol, MatrixVectorProduct<Vec> & mat_vec,
-               int & iters, ostream & fout = cout) {
+               int & iters, ostream & fout) {
   // check the subspace size
   if (m < 1) {
     cerr << "Lanczos: illegal value for max. iterations, m = "
@@ -3307,8 +3307,8 @@ template <class Vec>
 void GMRES(int m, double tol, const Vec & b, Vec & x,
            MatrixVectorProduct<Vec> & mat_vec,
            Preconditioner<Vec> & precond, int & iters, 
-           ostream & fout = cout, const bool & check_res = true,
-           const bool & dynamic = false) {
+           ostream & fout, const bool & check_res,
+           const bool & dynamic) {
   // check the subspace size
   if (m < 1) {
     cerr << "GMRES: illegal value for subspace size, m = " << m << endl;
@@ -3437,10 +3437,9 @@ template <class Vec>
 void FGMRES(int m, double tol, const Vec & b, Vec & x,
 	    MatrixVectorProduct<Vec> & mat_vec,
 	    Preconditioner<Vec> & precond, int & iters, 
-            ostream & fout = cout, const bool & check_res = true,
-            const bool & dynamic = false, const boost::scoped_ptr<double> & res
-            = boost::scoped_ptr<double>(), const boost::scoped_ptr<double> & sig
-            = boost::scoped_ptr<double>()) {
+            ostream & fout, const bool & check_res,
+            const bool & dynamic, const boost::scoped_ptr<double> & res, 
+            const boost::scoped_ptr<double> & sig) {
   // check the subspace size
   if (m < 1) {
     cerr << "FGMRES: illegal value for subspace size, m = " << m << endl;
@@ -3577,8 +3576,8 @@ template <class Vec>
 void FFOM(int m, double tol, const Vec & b, Vec & x,
           MatrixVectorProduct<Vec> & mat_vec,
           Preconditioner<Vec> & precond, int & iters, 
-          ostream & fout = cout, const bool & check_res = true,
-          const bool & dynamic = false) {
+          ostream & fout, const bool & check_res,
+          const bool & dynamic) {
   // check the subspace size
   if (m < 1) {
     cerr << "FFOM: illegal value for subspace size, m = " << m << endl;
@@ -3735,8 +3734,8 @@ void SteihaugCG(int m, double tol, double radius, const Vec & b, Vec & x,
                 MatrixVectorProduct<Vec> & mat_vec,
                 Preconditioner<Vec> & precond, int & iters,
                 double & pred, bool & active,
-                ostream & fout = cout, const bool & check_res = true,
-                const bool & dynamic = false) {
+                ostream & fout, const bool & check_res,
+                const bool & dynamic) {
   // check the subspace size
   if (m < 1) {
     cerr << "SteihaugCG: illegal value for subspace size, m = " << m << endl;
@@ -3885,8 +3884,8 @@ template <class Vec>
 void SteihaugFOM(int m, double tol, double radius, const Vec & b, Vec & x,
                  MatrixVectorProduct<Vec> & mat_vec,
                  Preconditioner<Vec> & precond, int & iters, double & pred,
-                 bool & active, ostream & fout = cout,
-                 const bool & check_res = true, const bool & dynamic = false) {
+                 bool & active, ostream & fout,
+                 const bool & check_res, const bool & dynamic) {
   // check the subspace size
   if (m < 1) {
     cerr << "SteihaugFOM: illegal value for subspace size, m = " << m << endl;
@@ -4045,8 +4044,8 @@ template <class Vec>
 void MINRES(int m, double tol, const Vec & b, Vec & x,
 	    MatrixVectorProduct<Vec> & mat_vec,
 	    Preconditioner<Vec> & precond, int & iters, 
-            ostream & fout = cout, const bool & check_res = true,
-            const bool & dynamic = false) {
+            ostream & fout, const bool & check_res,
+            const bool & dynamic) {
   // check the subspace size
   if (m < 1) {
     cerr << "MINRES: illegal value for subspace size, m = " << m << endl;
@@ -4155,7 +4154,7 @@ void MINRES(int m, double tol, const Vec & b, Vec & x,
       // solution of a generalized eigenvalue problem, Ay = lambda My.  This is
       // highly unlikely in our context, so we ignore this
       // if (beta/beta0 <= 10.0*kEpsilon) istop = -1; // beta2 = 0 or is ~ 0
-      gmax = abs(alpha);
+      gmax = fabs(alpha);
       gmin = gmax;
     }
 
@@ -4247,8 +4246,8 @@ template <class Vec>
 void FITR_old(int m, double tol, double radius, const Vec & b, Vec & x,
               MatrixVectorProduct<Vec> & mat_vec,
               Preconditioner<Vec> & precond, int & iters, double & pred,
-              bool & active, ostream & fout = cout, const bool & check = true,
-              const bool & dynamic = false) {
+              bool & active, ostream & fout, const bool & check,
+              const bool & dynamic) {
   // check the subspace size
   if (m < 1) {
     cerr << "FITR: illegal value for subspace size, m = " << m << endl;

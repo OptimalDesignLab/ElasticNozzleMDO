@@ -8,7 +8,7 @@ SHELL = /bin/sh
 
 # get python options
 PYTHON_PREFIX=$(shell ${PYTHON_CONFIG} --prefix)
-PYTHON_INCLUDES=$(shell ${PYTHON_CONFIG} --includes)
+PYTHON_INCLUDES=$(shell ${PYTHON_CONFIG} --includes) -I${PYUBLAS_INCL} -I${NUMPY_INCL}
 PYTHON_LIBS=-L$(PYTHON_PREFIX)/lib $(shell ${PYTHON_CONFIG} --libs)
 
 # get boost options
@@ -16,7 +16,7 @@ BOOST_INCLUDES=-I${BOOST_PREFIX}/include
 BOOST_LIBS=-L${BOOST_PREFIX}/lib -lboost_program_options -lboost_python
 
 # c preprocessor options
-CPPFLAGS= -cpp -DNDEBUG -DBOOST_UBLAS_ENABLE_PROXY_SHORTCUTS -DBOOST_UBLAS_TYPE_CHECK=0
+CPPFLAGS= ${CPP} -DNDEBUG -DBOOST_UBLAS_ENABLE_PROXY_SHORTCUTS -DBOOST_UBLAS_TYPE_CHECK=0
 
 # compiler options that may vary (user can change)
 CXXFLAGS= -g -fPIC -O3 -fpermissive ${USER_CFLAGS}
@@ -63,7 +63,7 @@ all: pylib
 
 pylib: $(OBJS) aerostruct_mdf.o Makefile
 	@echo "Compiling Python module for MDF"
-	@${CXX} -shared -fPIC -Wl,-z,defs,-soname,aerostruct_mdf.so \
+	@${CXX} -shared -fPIC -Wl,-install_name,aerostruct_mdf.so \
 	aerostruct_mdf.o $(OBJS) $(LDFLAGS) -o aerostruct_mdf.so
 
 clean:

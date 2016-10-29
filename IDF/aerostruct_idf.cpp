@@ -252,11 +252,11 @@ void init_mda(int py_num_design, int py_nodes)
   BCtype(num_dis_var-1) = -1;
 
   // define the x- and y-coordinates, and the linearly varying nozzle area
-  InnerProdVector x_coord(nodes, 0.0), y_coord(nodes, 0.0);
+  InnerProdVector x_coord(nodes, 0.0), y_coord(nodes, 0.0), area(nodes, 0.0);
   for (int i = 0; i < nodes; i++) {
     x_coord(i) = MeshCoord(length, nodes, i);
-    double A = InitNozzleArea(x_coord(i)/length);
-    y_coord(i) = 0.5*(height - A/width);
+    area(i) = InitNozzleArea(x_coord(i)/length);
+    y_coord(i) = 0.5*(height - area(i)/width);
   }
 
   // define the left and right nozzle areas
@@ -335,8 +335,6 @@ void alloc_dual(int py_num_dual_vec)
 
 void init_design(int store_here)
 {
-  cout << "beginning initdesign..." << endl;
-
   assert((store_here >= 0) && (store_here < num_design_vec));
   // in case the nozzle has not been initiated
   InnerProdVector pts(num_bspline, 0.0), press(nodes, 0.0),
@@ -344,7 +342,6 @@ void init_design(int store_here)
   pts = 1.0;
 
   SetBsplinePts(store_here, pts);
-  cout << "after SetBsplinePts(store_here, pts)" << endl;
   nozzle_shape.SetCoeff(pts);
 
   // fit a b-spline nozzle to a given shape
@@ -356,7 +353,6 @@ void init_design(int store_here)
   nozzle_shape.FitNozzle(x_coord, area);
   nozzle_shape.GetCoeff(pts);
 
-  cout << "after initializing nozzle_shape..." << endl;
   SetBsplinePts(store_here, pts);
   SetCouplingArea(store_here, area);
 
