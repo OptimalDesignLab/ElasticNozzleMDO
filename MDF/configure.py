@@ -54,6 +54,7 @@ if __name__ == "__main__":
 
     if platform == "linux" or platform == "linux2":
         cpp = "-cpp"
+        linker_opts = "-z,defs,-soname"
     elif platform == "darwin":
         print "macOS detected! pyport.h needs a patch for Boost compatibility"
         choice = raw_input("continue? (y/n) ")
@@ -64,6 +65,7 @@ if __name__ == "__main__":
         else:
             raise ValueError("Invalid selection!")
         cpp = ""
+        linker_opts = "-install_name"
         python_inc = get_python_inc()
         curr_path = os.path.dirname(os.path.abspath(__file__))
         os.chdir(python_inc)
@@ -81,7 +83,8 @@ if __name__ == "__main__":
         "PYTHON_CONFIG" : options.python_config,
         "BOOST_PREFIX" : options.boost_prefix,
         "NUMPY_INCL" : numpy_incl,
-        "PYUBLAS_INCL" : pyublas_incl
+        "PYUBLAS_INCL" : pyublas_incl,
+        "LINKER_OPTS" : linker_opts
     }
 
     print "Writing Makefile..."

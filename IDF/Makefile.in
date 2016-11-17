@@ -63,7 +63,7 @@ all: pylib
 
 pylib: $(OBJS) aerostruct_idf.o Makefile
 	@echo "Compiling Python module for IDF"
-	@${CXX} -shared -fPIC -Wl,-install_name,aerostruct_idf.so \
+	@${CXX} -shared -fPIC -Wl,${LINKER_OPTS},aerostruct_idf.so \
 	aerostruct_idf.o $(OBJS) $(LDFLAGS) -o aerostruct_idf.so
 
 clean:

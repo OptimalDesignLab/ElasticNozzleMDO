@@ -42,6 +42,10 @@
 # executables
 *.bin
 
+# CLion build system stuff
+build/
+.idea/
+
 # generated Makefile
 Makefile
 

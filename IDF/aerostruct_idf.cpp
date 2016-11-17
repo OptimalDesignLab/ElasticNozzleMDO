@@ -1033,7 +1033,7 @@ int apply_precond(int at_design, int at_state, int in_vec, int out_vec)
   csm_solver.set_coords(cfd_solver.get_x_coord(), y_coords);
   csm_solver.UpdateMesh();
   GetCSMState(k, u_csm);
-  csm_solver.SolveFor(u_csm, 10000, 1e-3);
+  csm_solver.SolveFor(u_csm, 1000, 1e-1);
   SetCSMState(m, csm_solver.get_u());
   return 1;
 }
@@ -1063,7 +1063,7 @@ int apply_precond_t(int at_design, int at_state, int in_vec, int out_vec)
   csm_solver.set_coords(cfd_solver.get_x_coord(), y_coords);
   csm_solver.UpdateMesh();
   GetCSMState(k, u_csm);
-  csm_solver.SolveFor(u_csm, 10000, 1e-3);
+  csm_solver.SolveFor(u_csm, 1000, 1e-1);
   SetCSMState(m, csm_solver.get_u());
   return 1;
 }

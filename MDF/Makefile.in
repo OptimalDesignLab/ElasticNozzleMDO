@@ -63,7 +63,7 @@ all: pylib
 
 pylib: $(OBJS) aerostruct_mdf.o Makefile
 	@echo "Compiling Python module for MDF"
-	@${CXX} -shared -fPIC -Wl,-install_name,aerostruct_mdf.so \
+	@${CXX} -shared -fPIC -Wl,${LINKER_OPTS},aerostruct_mdf.so \
 	aerostruct_mdf.o $(OBJS) $(LDFLAGS) -o aerostruct_mdf.so
 
 clean:

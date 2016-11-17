@@ -22,7 +22,7 @@ verifier_optns = {
 
 opt_optns = {
     'info_file' : sys.stdout,
-    'max_iter' : 1,
+    'max_iter' : 50,
     'opt_tol' : 1e-5,
     'feas_tol' : 1e-5,
     'globalization' : None,
@@ -30,19 +30,22 @@ opt_optns = {
 
     'homotopy' : {
         'inner_tol' : 1e-2,
-        'inner_maxiter' : 50,
-        'nominal_dist' : 5.0,
-        'nominal_angle' : 15.0*np.pi/180.,
+        'inner_maxiter' : 20,
+        'nominal_dist' : 10.0,
+        'nominal_angle' : 45.0*np.pi/180.,
+        'max_step' : 0.1,
+        'weight' : 1.,
+        'idf_hom' : True,
     },
 
     'trust' : {
-        'init_radius' : 1.0,
-        'max_radius' : 2.0,
+        'init_radius' : 100.0,
+        'max_radius' : 100.0,
         'min_radius' : 1e-4,
     },
 
     'penalty' : {
-        'mu_init' : 0.01,
+        'mu_init' : 1.0,
         'mu_pow' : 1.0,
         'mu_max' : 1e5,
     },
@@ -60,17 +63,17 @@ opt_optns = {
         'feas_scale'    : 1.0,
         # krylov solver settings
         'krylov_file'   : 'kona_krylov.dat',
-        'subspace_size' : 10,
+        'subspace_size' : 15,
         'check_res'     : True,
         'rel_tol'       : 1e-2,
     },
 }
 
-verifier = kona.algorithms.Verifier
-optimizer = kona.Optimizer(solver, verifier, verifier_optns)
+# verifier = kona.algorithms.Verifier
+# optimizer = kona.Optimizer(solver, verifier, verifier_optns)
 
-# algorithm = kona.algorithms.PredictorCorrectorCnstr
+algorithm = kona.algorithms.PredictorCorrectorCnstr
 # algorithm = kona.algorithms.FLECS_RSNK
-# optimizer = kona.Optimizer(solver, algorithm, opt_optns)
+optimizer = kona.Optimizer(solver, algorithm, opt_optns)
 
 optimizer.solve()
