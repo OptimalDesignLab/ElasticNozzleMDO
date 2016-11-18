@@ -22,7 +22,7 @@ verifier_optns = {
 
 opt_optns = {
     'info_file' : sys.stdout,
-    'max_iter' : 50,
+    'max_iter' : 100,
     'opt_tol' : 1e-5,
     'feas_tol' : 1e-5,
     'globalization' : None,
@@ -35,7 +35,7 @@ opt_optns = {
         'nominal_angle' : 45.0*np.pi/180.,
         'max_step' : 0.1,
         'weight' : 1.,
-        'idf_hom' : True,
+        'idf_hom' : False,
     },
 
     'trust' : {
