@@ -43,4 +43,3 @@ $ ./configure.py --boost-prefix=/usr/local
 $ make -j4
 ```
 For more options, see `./configure.py --help`.
-

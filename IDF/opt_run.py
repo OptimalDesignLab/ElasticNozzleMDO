@@ -25,7 +25,7 @@ opt_optns = {
     'max_iter' : 100,
     'opt_tol' : 1e-5,
     'feas_tol' : 1e-5,
-    'globalization' : None,
+    'globalization' : 'filter',
     'matrix_explicit' : True,
 
     'homotopy' : {
@@ -72,8 +72,8 @@ opt_optns = {
 # verifier = kona.algorithms.Verifier
 # optimizer = kona.Optimizer(solver, verifier, verifier_optns)
 
-algorithm = kona.algorithms.PredictorCorrectorCnstr
-# algorithm = kona.algorithms.FLECS_RSNK
+# algorithm = kona.algorithms.PredictorCorrectorCnstr
+algorithm = kona.algorithms.FLECS_RSNK
 optimizer = kona.Optimizer(solver, algorithm, opt_optns)
 
 optimizer.solve()
