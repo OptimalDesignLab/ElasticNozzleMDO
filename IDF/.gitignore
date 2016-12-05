@@ -38,6 +38,10 @@
 # executables
 *.bin
 
+# CLion build system stuff
+CMakeFiles/*
+*.cmake
+
 # generated Makefile
 Makefile
 
