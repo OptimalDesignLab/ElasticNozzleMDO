@@ -28,16 +28,6 @@ opt_optns = {
     'globalization' : 'filter',
     'matrix_explicit' : True,
 
-    'homotopy' : {
-        'inner_tol' : 1e-2,
-        'inner_maxiter' : 20,
-        'nominal_dist' : 10.0,
-        'nominal_angle' : 45.0*np.pi/180.,
-        'max_step' : 0.1,
-        'weight' : 1.,
-        'idf_hom' : False,
-    },
-
     'trust' : {
         'init_radius' : 1.0,
         'max_radius' : 2.0,
@@ -52,19 +42,9 @@ opt_optns = {
 
     'rsnk' : {
         'precond'       : 'idf_schur',
-        # rsnk algorithm settings
-        'dynamic_tol'   : False,
-        'nu'            : 1.0,
-        # reduced KKT matrix settings
-        'product_fac'   : 300.0,
-        'lambda'        : 0.0,
-        'scale'         : 1.0,
-        'grad_scale'    : 1.0,
-        'feas_scale'    : 1.0,
-        # krylov solver settings
         'krylov_file'   : 'kona_krylov.dat',
         'subspace_size' : 10,
-        'check_res'     : True,
+        'check_res'     : False,
         'rel_tol'       : 0.5,
     },
 }
@@ -72,7 +52,6 @@ opt_optns = {
 # verifier = kona.algorithms.Verifier
 # optimizer = kona.Optimizer(solver, verifier, verifier_optns)
 
-# algorithm = kona.algorithms.PredictorCorrectorCnstr
 algorithm = kona.algorithms.FLECS_RSNK
 optimizer = kona.Optimizer(solver, algorithm, opt_optns)
 

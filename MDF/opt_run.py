@@ -22,14 +22,10 @@ verifier_optns = {
 
 opt_optns = {
     'info_file' : sys.stdout,
-    'max_iter' : 25,
+    'max_iter' : 100,
     'opt_tol' : 1e-5,
     'matrix_explicit' : True,
     'globalization' : 'trust',
-    
-    'linesearch' : {
-        'type' : kona.algorithms.util.linesearch.BackTracking,
-    },
 
     'trust' : {
         'init_radius' : 0.5,
@@ -37,26 +33,8 @@ opt_optns = {
         'min_radius' : 1e-4,
     },
 
-    'homotopy' : {
-        'lambda' : 0.0,
-        'inner_tol' : 1e-2,
-        'inner_maxiter' : 50,
-        'nominal_step' : 1.0,
-        'nominal_angle' : 5.0*np.pi/180.,
-    },
-
     'rsnk' : {
         'precond'       : None,
-        # rsnk algorithm settings
-        'dynamic_tol'   : False,
-        'nu'            : 0.95,
-        # reduced KKT matrix settings
-        'product_fac'   : 0.001,
-        'lambda'        : 0.0,
-        'scale'         : 1.0,
-        'grad_scale'    : 1.0,
-        'feas_scale'    : 1.0,
-        # krylov solver settings
         'krylov_file'   : 'kona_krylov.dat',
         'subspace_size' : 10,
         'check_res'     : False,
