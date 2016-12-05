@@ -25,6 +25,11 @@ opt_optns = {
     'max_iter' : 25,
     'opt_tol' : 1e-5,
     'matrix_explicit' : True,
+    'globalization' : 'trust',
+    
+    'linesearch' : {
+        'type' : kona.algorithms.util.linesearch.BackTracking,
+    },
 
     'trust' : {
         'init_radius' : 0.5,
@@ -54,16 +59,15 @@ opt_optns = {
         # krylov solver settings
         'krylov_file'   : 'kona_krylov.dat',
         'subspace_size' : 10,
-        'check_res'     : True,
-        'rel_tol'       : 1e-2,
+        'check_res'     : False,
+        'rel_tol'       : 0.5,
     },
 }
 
-verifier = kona.algorithms.Verifier
-optimizer = kona.Optimizer(solver, verifier, verifier_optns)
+# verifier = kona.algorithms.Verifier
+# optimizer = kona.Optimizer(solver, verifier, verifier_optns)
 
-# algorithm = kona.algorithms.STCG_RSNK
-# algorithm = kona.algorithms.PredictorCorrector
-# optimizer = kona.Optimizer(solver, algorithm, opt_optns)
+algorithm = kona.algorithms.STCG_RSNK
+optimizer = kona.Optimizer(solver, algorithm, opt_optns)
 
-optimizer.solve()
+optimizer.solve(print_opts=True)

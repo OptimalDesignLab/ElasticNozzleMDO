@@ -3,7 +3,7 @@ import numpy as np
 import kona
 from elasticNozzleIDF import ElasticNozzleIDF
 
-solver = ElasticNozzleIDF(20, 61)
+solver = ElasticNozzleIDF(20, 121)
 
 verifier_optns = {
     'matrix_explicit'   : True,
@@ -39,15 +39,15 @@ opt_optns = {
     },
 
     'trust' : {
-        'init_radius' : 100.0,
-        'max_radius' : 100.0,
-        'min_radius' : 1e-4,
+        'init_radius' : 1.0,
+        'max_radius' : 2.0,
+        'min_radius' : 1e-6,
     },
 
     'penalty' : {
-        'mu_init' : 1.0,
+        'mu_init' : 0.01,
         'mu_pow' : 1.0,
-        'mu_max' : 1e5,
+        'mu_max' : 1e8,
     },
 
     'rsnk' : {
@@ -63,9 +63,9 @@ opt_optns = {
         'feas_scale'    : 1.0,
         # krylov solver settings
         'krylov_file'   : 'kona_krylov.dat',
-        'subspace_size' : 15,
+        'subspace_size' : 10,
         'check_res'     : True,
-        'rel_tol'       : 1e-2,
+        'rel_tol'       : 0.5,
     },
 }
 
@@ -76,4 +76,4 @@ opt_optns = {
 algorithm = kona.algorithms.FLECS_RSNK
 optimizer = kona.Optimizer(solver, algorithm, opt_optns)
 
-optimizer.solve()
+optimizer.solve(print_opts=True)

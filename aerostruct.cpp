@@ -422,7 +422,7 @@ void AeroStructMDA::BuildAndFactorPreconditioner() {
 
 // ======================================================================
 
-int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
+int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol, bool info)
 {
   kona::MatrixVectorProduct<InnerProdVector>*
       mat_vec = new AeroStructProduct(this);
@@ -446,10 +446,9 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol)
     InnerProdVector b(-v_);
     double norm = b.Norm2();   // evaluate the L2 norm
     if (iter == 0) norm0 = norm;
-    cout << "iter = " << iter
-         << ": L2 norm of residual = " << norm << endl;
+    if (info) cout << "iter = " << iter << ": L2 norm of residual = " << norm << endl;
     if ( (norm < tol*norm0) || (norm < 1.e-8) ) {
-      cout << "Solver: NewtonKrylov converged!" << endl;
+      if (info) cout << "Solver: NewtonKrylov converged!" << endl;
       scale_cfd_ = 1.0;
       scale_csm_ = 1.0;
       return precond_calls;

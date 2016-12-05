@@ -14,8 +14,8 @@ const double width = 0.01; //1.0;
 const double x_min = 0.0;
 const double x_max = x_min + length;
 const double area_left = 2.0;
-const double area_right = 1.9; //
-const double area_mid = 1.8; //
+const double area_right = 1.75; //
+const double area_mid = 1.5; //
 const double y_left = 0.5*(height - area_left/width);
 const double y_right = 0.5*(height - area_right/width);
 

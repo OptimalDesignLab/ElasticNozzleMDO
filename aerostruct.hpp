@@ -177,7 +177,7 @@ public:
    * \param[in] tol - tolerance with which to solve the system
    * \returns - total number of preconditioner calls
    */
-  int NewtonKrylov(const int & max_iter, const double & tol);
+  int NewtonKrylov(const int & max_iter, const double & tol, bool info=false);
 
   /*!
    * \brief solves for the linearized aero-structural problem
