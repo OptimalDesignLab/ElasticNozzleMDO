@@ -25,7 +25,7 @@ opt_optns = {
     'max_iter' : 100,
     'opt_tol' : 1e-5,
     'matrix_explicit' : True,
-    'globalization' : 'trust',
+    'globalization' : 'linesearch',
 
     'trust' : {
         'init_radius' : 0.5,
@@ -39,13 +39,14 @@ opt_optns = {
         'subspace_size' : 10,
         'check_res'     : False,
         'rel_tol'       : 0.5,
+        'product_tol'   : 1e-6,
     },
 }
 
 # verifier = kona.algorithms.Verifier
 # optimizer = kona.Optimizer(solver, verifier, verifier_optns)
 
-algorithm = kona.algorithms.STCG_RSNK
+algorithm = kona.algorithms.UnconstrainedRSNK
 optimizer = kona.Optimizer(solver, algorithm, opt_optns)
 
 optimizer.solve(print_opts=True)

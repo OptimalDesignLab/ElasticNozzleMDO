@@ -315,6 +315,9 @@ void AeroStructMDA::InitializeCFD(const InnerProdVector & x_coord,
   cfd_.set_diss_coeff(0.04);
 
   // initialize the CFD part of the aerostructural solution guess
+    cout << "rho_R = " << rho_R << endl;
+    cout << "rho_u_R = " << rho_u_R << endl;
+    cout << "e_R = " << e_R << endl;
   for (int i = 0; i < num_nodes_; i++) {
     u_(3*i) = rho_R;
     u_(3*i+1) = rho_u_R;
@@ -349,6 +352,13 @@ void AeroStructMDA::CalcResidual()
 {
   // Reset CSM coordinates back to the original geometry
   //csm_.ResetCoords();
+    
+//    ofstream u_file, res_file;
+//    u_file.open("u_file.dat");
+//    res_file.open("res_file.dat");
+//    
+//    u_.TextWrite(u_file);
+//    u_file.close();
 
   // Split system u into CSM and CFD vectors
   InnerProdVector u_cfd(3*num_nodes_, 0.0), u_csm(3*num_nodes_, 0.0);
@@ -386,6 +396,10 @@ void AeroStructMDA::CalcResidual()
     v_(i) = v_cfd(i);
     v_(3*num_nodes_+i) = v_csm(i);
   }
+    
+//    v_.TextWrite(res_file);
+//    cout << "residual norm = " << v_.Norm2() << endl;
+//    res_file.close();
 }
 
 // ======================================================================
@@ -446,9 +460,9 @@ int AeroStructMDA::NewtonKrylov(const int & max_iter, const double & tol, bool i
     InnerProdVector b(-v_);
     double norm = b.Norm2();   // evaluate the L2 norm
     if (iter == 0) norm0 = norm;
-    if (info) cout << "iter = " << iter << ": L2 norm of residual = " << norm << endl;
+    if (info) {cout << "iter = " << iter << ": L2 norm of residual = " << norm << endl;}
     if ( (norm < tol*norm0) || (norm < 1.e-8) ) {
-      if (info) cout << "Solver: NewtonKrylov converged!" << endl;
+      if (info) {cout << "Solver: NewtonKrylov converged!" << endl;}
       scale_cfd_ = 1.0;
       scale_csm_ = 1.0;
       return precond_calls;

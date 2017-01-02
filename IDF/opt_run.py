@@ -25,19 +25,19 @@ opt_optns = {
     'max_iter' : 100,
     'opt_tol' : 1e-5,
     'feas_tol' : 1e-5,
-    'globalization' : 'filter',
     'matrix_explicit' : True,
+    'globalization' : 'filter',
 
     'trust' : {
-        'init_radius' : 1.0,
-        'max_radius' : 2.0,
-        'min_radius' : 1e-6,
+        'init_radius' : 0.5,
+        'max_radius' : 4.0,
+        'min_radius' : 1e-4,
     },
 
     'penalty' : {
         'mu_init' : 0.01,
         'mu_pow' : 1.0,
-        'mu_max' : 1e8,
+        'mu_max' : 1e6,
     },
 
     'rsnk' : {
@@ -46,6 +46,7 @@ opt_optns = {
         'subspace_size' : 10,
         'check_res'     : False,
         'rel_tol'       : 0.5,
+        'product_tol'   : 1e-6,
     },
 }
 

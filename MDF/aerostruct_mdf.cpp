@@ -109,7 +109,7 @@ void init_mda(int py_num_design, int py_nodes)
   // initialize the solver disciplines
   solver.InitializeCFD(x_coord, area);
   solver.InitializeCSM(x_coord, y_coord, BCtype, BCval, E, thick, width, height);
-  int precond_calls = solver.NewtonKrylov(30, tol);
+  int precond_calls = solver.NewtonKrylov(30, tol, true);
   cout << "Total solver precond calls: " << precond_calls << endl;
   solver.CopyPressIntoTarget();
   cout << "Cost of one MDA eval: " << precond_calls << endl;
@@ -622,7 +622,7 @@ int solve_nonlinear(int at_design, int store_here)
   //solver.GetTecplot(1.0, 1.0);
   //solver.InitialCondition(rho_R, rho_u_R, e_R);
   solver.SetInitialCondition();
-  int cost = solver.NewtonKrylov(20, tol);
+  int cost = solver.NewtonKrylov(20, tol, true);
   state[store_here] = solver.get_u();
   return cost;
 }

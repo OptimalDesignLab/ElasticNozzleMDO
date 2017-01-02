@@ -33,26 +33,6 @@ double InitNozzleArea(const double & x) {
   return area_left + (area_right - area_left)*x;
 }
 
-int FindTargPress(const InnerProdVector & x_coord,
-                  const InnerProdVector & BCtype,
-                  const InnerProdVector & BCval,
-                  InnerProdVector & targ_press) {
-  // define the target nozzle area and corresponding y-coord
-  InnerProdVector area(nodes, 0.0), y_coord(nodes, 0.0);
-  for (int i = 0; i < nodes; i++) {
-    area(i) = TargetNozzleArea(x_coord(i));
-    y_coord(i) = 0.5*(height - area(i)/width);
-  }
-  AeroStructMDA asmda(nodes, order);
-  asmda.InitializeCFD(x_coord, area);
-  asmda.InitializeCSM(x_coord, y_coord, BCtype, BCval, E, thick, width, height);
-  int precond_calls = asmda.NewtonKrylov(30, tol);
-  //asmda.GetTecplot(1.0, 1.0);
-  //throw(-1);
-  targ_press = asmda.get_press();
-  return precond_calls;
-}
-
 void InitCFDSolver(const InnerProdVector & x_coord,
                    const InnerProdVector & press_t) {
   // define reference and boundary conditions
@@ -228,15 +208,42 @@ void init_mda(int py_num_design, int py_nodes)
   cout << "# of nodes  = " << nodes << endl;
   cout << "# of state  = " << num_var << endl;
 
+  // vector allocation for stagnation and target pressures
   press_stag = InnerProdVector(nodes, kPressStag);
   press_targ = InnerProdVector(nodes, 0.0);
-  csm_solver = LECSM(nodes); //nodes
-  cfd_solver = Quasi1DEuler(nodes, order); //nodes, order
 
-  // set the nodal degrees of freedom for the CSM
-  InnerProdVector BCtype(num_dis_var, 0.0);
-  InnerProdVector BCval(num_dis_var, 0.0);
+  // declare the MDF solver to compute target pressures
+  AeroStructMDA asmda(nodes, order, nozzle_shape);
+
+  // define the target area
+  InnerProdVector x_coord(nodes, 0.0);
+  InnerProdVector y_coord(nodes, 0.0);
+  InnerProdVector area(nodes, 0.0);
   for (int i = 0; i < nodes; i++) {
+    // create uniform spaced x coordinates
+    x_coord(i) = MeshCoord(length, nodes, i);
+    area(i) = TargetNozzleArea(x_coord(i));
+    y_coord(i) = 0.5*(height - area(i)/width);
+  }
+
+  // define the Bspline for the nozzle
+  nozzle_shape.SetAreaAtEnds(area_left, area_right);
+
+#if 0
+  // query Bspline for nodal areas corresponding to each x
+  InnerProdVector area = nozzle_shape.Area(x_coord);
+#endif
+
+#if 0
+  // calculate the y coordinates based on the nodal areas
+  for (int i = 0; i < nodes; i++)
+    y_coord(i) = 0.5*(height - (area(i)/width));
+#endif
+
+  // define CSM nodal degrees of freedom
+  InnerProdVector BCtype(3*nodes, 0.0);
+  InnerProdVector BCval(3*nodes, 0.0);
+  for (int i=0; i<nodes; i++) {
     BCtype(3*i) = 0; //-1;
     BCtype(3*i+1) = -1;
     BCtype(3*i+2) = -1;
@@ -247,24 +254,22 @@ void init_mda(int py_num_design, int py_nodes)
   BCtype(0) = 0;
   BCtype(1) = 0;
   BCtype(2) = -1;
-  BCtype(num_dis_var-3) = 0;
-  BCtype(num_dis_var-2) = 0;
-  BCtype(num_dis_var-1) = -1;
+  BCtype(3*nodes-3) = 0;
+  BCtype(3*nodes-2) = 0;
+  BCtype(3*nodes-1) = -1;
 
-  // define the x- and y-coordinates, and the linearly varying nozzle area
-  InnerProdVector x_coord(nodes, 0.0), y_coord(nodes, 0.0), area(nodes, 0.0);
-  for (int i = 0; i < nodes; i++) {
-    x_coord(i) = MeshCoord(length, nodes, i);
-    area(i) = InitNozzleArea(x_coord(i)/length);
-    y_coord(i) = 0.5*(height - area(i)/width);
-  }
-
-  // define the left and right nozzle areas
-  nozzle_shape.SetAreaAtEnds(area_left, area_right);
-
-  // find the target pressure and the number of preconditioner calls for the MDA
-  int solver_precond_calls = FindTargPress(x_coord, BCtype, BCval, press_targ);
-  cout << "total MDA precond calls = " << solver_precond_calls << endl;
+  // initialize the MDF solver disciplines
+  asmda.InitializeCFD(x_coord, area);
+  asmda.InitializeCSM(x_coord, y_coord, BCtype, BCval, E, thick, width, height);
+  
+  // solve for target pressures
+  int precond_calls = asmda.NewtonKrylov(30, tol, true);
+  cout << "Total solver precond calls: " << precond_calls << endl;
+  press_targ = asmda.get_press();
+  
+  // declare individual discipline solvers used in IDF
+  csm_solver = LECSM(nodes); //nodes
+  cfd_solver = Quasi1DEuler(nodes, order); //nodes, order
 
   // set-up the cfd_solver
   cout << "Initializing CDF...";
@@ -1253,7 +1258,7 @@ int solve_nonlinear(int at_design, int result)
   GetCouplingArea(i, area);
   cfd_solver.set_area(area);
   cfd_solver.InitialCondition(rho_R, rho_u_R, e_R);
-  int cost = cfd_solver.NewtonKrylov(20, tol);
+  int cost = cfd_solver.NewtonKrylov(20, tol, true);
   SetCFDState(j, cfd_solver.get_q());
   cfd_solver.WriteTecplot(1.0, 1.0, "cfd_after_solve.dat");
   // Solve the CSM
@@ -1294,7 +1299,7 @@ int solve_linear(int at_design, int at_state, int rhs, int result, double rel_to
   InnerProdVector pts(num_bspline, 0.0), y_coords(nodes, 0.0),
       u_csm(num_dis_var, 0.0);
   GetCFDState(k, g_cfd);
-  int cost = cfd_solver.SolveLinearized(100, adj_tol, g_cfd, adj_cfd);
+  int cost = cfd_solver.SolveLinearized(100, rel_tol, g_cfd, adj_cfd);
   SetCFDState(m, adj_cfd);
   // CSM contribution
   // Note: stiffness matrix does not depend on press
@@ -1305,7 +1310,7 @@ int solve_linear(int at_design, int at_state, int rhs, int result, double rel_to
   csm_solver.set_coords(cfd_solver.get_x_coord(), y_coords);
   csm_solver.UpdateMesh();
   GetCSMState(k, g_cfd);
-  csm_solver.SolveFor(g_cfd, 10000, adj_tol);
+  csm_solver.SolveFor(g_cfd, 10000, rel_tol);
   SetCSMState(m, csm_solver.get_u());
   return cost;
 }
@@ -1329,7 +1334,7 @@ int solve_adjoint(int at_design, int at_state, int rhs, int result, double rel_t
   cfd_solver.set_area(area);
   cfd_solver.set_q(q);
   GetCFDState(k, g_cfd);
-  int cost = cfd_solver.SolveAdjoint(100, adj_tol, g_cfd, adj_cfd);
+  int cost = cfd_solver.SolveAdjoint(100, rel_tol, g_cfd, adj_cfd);
   SetCFDState(m, adj_cfd);
   // CSM contribution
   // Note: stiffness matrix does not depend on press
@@ -1340,7 +1345,7 @@ int solve_adjoint(int at_design, int at_state, int rhs, int result, double rel_t
   csm_solver.set_coords(cfd_solver.get_x_coord(), y_coords);
   csm_solver.UpdateMesh();
   GetCSMState(k, g_cfd);
-  csm_solver.SolveFor(g_cfd, 10000, adj_tol);
+  csm_solver.SolveFor(g_cfd, 10000, rel_tol);
   SetCSMState(m, csm_solver.get_u());
   return cost;
 }

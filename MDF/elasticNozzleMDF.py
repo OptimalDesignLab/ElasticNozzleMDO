@@ -142,4 +142,4 @@ class ElasticNozzleMDF(UserSolver):
                          curr_eq, curr_ineq, curr_slack):
         mda.set_design_data(1, curr_design)
         mda.info_dump(1, curr_state.idx, curr_adj.idx, num_iter)
-        # plot_nozzle('nozzle_inner_%i.png'%num_iter)
+        plot_nozzle('nozzle_inner_%i.png'%num_iter)
