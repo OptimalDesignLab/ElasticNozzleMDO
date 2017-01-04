@@ -19,7 +19,7 @@ BOOST_LIBS=-L${BOOST_PREFIX}/lib -lboost_program_options -lboost_python
 CPPFLAGS= ${CPP} -DNDEBUG -DBOOST_UBLAS_ENABLE_PROXY_SHORTCUTS -DBOOST_UBLAS_TYPE_CHECK=0
 
 # compiler options that may vary (user can change)
-CXXFLAGS= -g -fPIC -O3 -fpermissive ${USER_CFLAGS}
+CXXFLAGS= -g -gdwarf-2 -fPIC ${USER_CFLAGS}
 
 # linker options
 LDFLAGS= $(PYTHON_LIBS) $(BOOST_LIBS) -lm -lstdc++ -llapack -lblas
@@ -63,7 +63,7 @@ all: pylib
 
 pylib: $(OBJS) aerostruct_mdf.o Makefile
 	@echo "Compiling Python module for MDF"
-	@${CXX} -shared -fPIC -Wl,${LINKER_OPTS},aerostruct_mdf.so \
+	@${CXX} $(ALL_CXXFLAGS) -shared -Wl,${LINKER_OPTS},aerostruct_mdf.so \
 	aerostruct_mdf.o $(OBJS) $(LDFLAGS) -o aerostruct_mdf.so
 
 clean:

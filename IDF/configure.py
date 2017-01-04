@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
     if platform == "linux" or platform == "linux2":
         cpp = "-cpp"
-        linker_opts = "-z,defs,-soname"
+        linker_opts = "-soname"
     elif platform == "darwin":
         print "macOS detected! pyport.h needs a patch for Boost compatibility"
         choice = raw_input("continue? (y/n) ")

@@ -1258,7 +1258,7 @@ int solve_nonlinear(int at_design, int result)
   GetCouplingArea(i, area);
   cfd_solver.set_area(area);
   cfd_solver.InitialCondition(rho_R, rho_u_R, e_R);
-  int cost = cfd_solver.NewtonKrylov(20, tol, true);
+  int cost = cfd_solver.NewtonKrylov(20, tol, false);
   SetCFDState(j, cfd_solver.get_q());
   cfd_solver.WriteTecplot(1.0, 1.0, "cfd_after_solve.dat");
   // Solve the CSM
