@@ -9,8 +9,8 @@
 
 // nozzle parameters
 const double length = 1.0;
-const double height = 200.0; //2.0;
-const double width = 0.01; //1.0;
+const double height = 2.0; //200.0;
+const double width = 1.0; //0.01;
 const double x_min = 0.0;
 const double x_max = x_min + length;
 const double area_left = 2.0;
@@ -31,7 +31,7 @@ const double kPressStag = 100000;
 const double kRGas = 287.0;
 
 // CSM material parameters
-const double E = 1e7; //70e9; //1.e7;   // Young's modulus
+const double E = 1e9; //70e9; //1.e7;   // Young's modulus
 const double thick = 0.01; //0.01;        // fixed beam element thickness
 
 // objective parameters

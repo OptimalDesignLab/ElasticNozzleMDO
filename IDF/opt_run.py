@@ -1,5 +1,4 @@
 import sys
-import numpy as np
 import kona
 from elasticNozzleIDF import ElasticNozzleIDF
 
@@ -43,7 +42,7 @@ opt_optns = {
     'rsnk' : {
         'precond'       : 'idf_schur',
         'krylov_file'   : 'kona_krylov.dat',
-        'subspace_size' : 10,
+        'subspace_size' : 15,
         'check_res'     : False,
         'rel_tol'       : 0.5,
         'product_tol'   : 1e-6,
@@ -53,7 +52,7 @@ opt_optns = {
 # verifier = kona.algorithms.Verifier
 # optimizer = kona.Optimizer(solver, verifier, verifier_optns)
 
-algorithm = kona.algorithms.FLECS_RSNK
+algorithm = kona.algorithms.ConstrainedRSNK
 optimizer = kona.Optimizer(solver, algorithm, opt_optns)
 
-optimizer.solve(print_opts=True)
+optimizer.solve(print_opts=False)

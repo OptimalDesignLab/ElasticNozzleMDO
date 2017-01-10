@@ -43,6 +43,7 @@
 *.bin
 
 # CLion build system stuff
+cmake-build-debug/
 build/
 .idea/
 

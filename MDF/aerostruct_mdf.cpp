@@ -622,7 +622,7 @@ int solve_nonlinear(int at_design, int store_here)
   //solver.GetTecplot(1.0, 1.0);
   //solver.InitialCondition(rho_R, rho_u_R, e_R);
   solver.SetInitialCondition();
-  int cost = solver.NewtonKrylov(20, tol, true);
+  int cost = solver.NewtonKrylov(20, tol);
   state[store_here] = solver.get_u();
   return cost;
 }

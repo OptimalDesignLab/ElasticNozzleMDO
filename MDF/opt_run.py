@@ -1,6 +1,5 @@
 import sys
 import kona
-import numpy as np
 from elasticNozzleMDF import ElasticNozzleMDF
 
 solver = ElasticNozzleMDF(20, 121)
