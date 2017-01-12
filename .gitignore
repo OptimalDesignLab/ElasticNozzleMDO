@@ -45,7 +45,10 @@
 # CLion build system stuff
 cmake-build-debug/
 build/
+CMakeFiles/*
 .idea/
+*.cmake
+CMakeCache.txt
 
 # generated Makefile
 Makefile

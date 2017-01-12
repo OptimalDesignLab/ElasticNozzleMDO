@@ -11,7 +11,7 @@ execute_process(COMMAND python-config --ldflags
         OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    set(LDFLAGS "-z,defs,-soname")
+    set(LDFLAGS "-soname")
     set(CPP "-cpp")
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(LDFLAGS "-install_name")
@@ -22,7 +22,7 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     execute_process(COMMAND patch -p1 -N ${Python_PREFIX}/include/python2.7/pyport.h ../patch_pyport.h.diff)
 endif()
 
-set(CMAKE_CXX_FLAGS "${CPP} ${CMAKE_CXX_FLAGS} -g -fPIC -O3 -fpermissive")
+set(CMAKE_CXX_FLAGS "${CPP} ${CMAKE_CXX_FLAGS} -g -w -gdwarf-2 -fPIC -std=c++11")
 
 set(Boost_LIBS "-lboost_python -lboost_program_options")
 

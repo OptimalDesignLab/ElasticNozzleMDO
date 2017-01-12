@@ -21,7 +21,7 @@ verifier_optns = {
 
 opt_optns = {
     'info_file' : sys.stdout,
-    'max_iter' : 100,
+    'max_iter' : 1,
     'opt_tol' : 1e-5,
     'feas_tol' : 1e-5,
     'matrix_explicit' : True,
@@ -40,7 +40,7 @@ opt_optns = {
     },
 
     'rsnk' : {
-        'precond'       : 'idf_schur',
+        'precond'       : None,
         'krylov_file'   : 'kona_krylov.dat',
         'subspace_size' : 15,
         'check_res'     : False,

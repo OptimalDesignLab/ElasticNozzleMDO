@@ -917,7 +917,7 @@ void AeroStructPrecond::operator()(InnerProdVector & u, InnerProdVector & v)
   mda_->csm_.Precondition(u_csm, v_csm);
 #else
 
-  mda_->csm_.SolveFor(u_csm, 1000, 1e-2);
+  mda_->csm_.SolveFor(u_csm, 1000, 1e-5);
   v_csm = mda_->csm_.get_u();
   //v_csm = u_csm;
   mda_->cfd_.Precondition(u_cfd, v_cfd);

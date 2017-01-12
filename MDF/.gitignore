@@ -3,7 +3,8 @@
 # Lines that start with '#' are comments.
 
 # ignore object files and modules
-*.[o]
+*.o
+*.so
 *.mod
 
 # ignore temporary files created by emacs, etc.
@@ -37,6 +38,11 @@
 
 # executables
 *.bin
+
+# CLion build system stuff
+CMakeFiles/*
+CMakeCache.txt
+*.cmake
 
 # generated Makefile
 Makefile

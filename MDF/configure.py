@@ -15,25 +15,32 @@ if __name__ == "__main__":
     from optparse import OptionParser
     from distutils.sysconfig import get_python_inc
 
+    if platform in ["linux", "linux2"]:
+        default_cxx = "g++"
+    elif platform == "darwin":
+        deafult_cxx = "clang++"
+    else:
+        raise RuntimeError("Unrecognized platform! Must be Linux or macOS.")
+
     usage = "usage: ./configure.py [options] arg1 arg2"
     parser = OptionParser(usage=usage)
     parser.add_option(
-        "--with-cxx", 
+        "--with-cxx",
         dest="cxx",
-        default="g++",
+        default=default_cxx,
         help="Path for C++ compiler.")
     parser.add_option(
-        "--cxx-flags", 
+        "--cxx-flags",
         dest="cxx_flags",
         default="",
         help="CXX compiler flags.")
     parser.add_option(
-        "--python-config", 
+        "--python-config",
         dest="python_config",
         default="python-config",
         help="Path for python-config binary.")
     parser.add_option(
-        "--boost-prefix", 
+        "--boost-prefix",
         dest="boost_prefix",
         default="/usr/local",
         help="Installation prefix for Boost C++.")
@@ -52,7 +59,9 @@ if __name__ == "__main__":
     except ImportError:
         raise ImportError("Cannot import dependency: PyUblas")
 
+    user_cflags = options.cxx_flags
     if platform == "linux" or platform == "linux2":
+        user_cflags += "-std=c++11"
         cpp = "-cpp"
         linker_opts = "-soname"
     elif platform == "darwin":
@@ -64,6 +73,10 @@ if __name__ == "__main__":
             pass
         else:
             raise ValueError("Invalid selection!")
+        if options.cxx == default_cxx:
+            user_cflags += " -w -std=gnu++11"
+        else:
+            user_cflags += "-std=c++11"
         cpp = ""
         linker_opts = "-install_name"
         python_inc = get_python_inc()
@@ -79,7 +92,7 @@ if __name__ == "__main__":
     substitutions = {
         "CXX" : options.cxx,
         "CPP" : cpp,
-        "USER_CFLAGS" : options.cxx_flags,
+        "USER_CFLAGS" : user_cflags,
         "PYTHON_CONFIG" : options.python_config,
         "BOOST_PREFIX" : options.boost_prefix,
         "NUMPY_INCL" : numpy_incl,
