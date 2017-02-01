@@ -18,14 +18,14 @@ if __name__ == "__main__":
     if platform in ["linux", "linux2"]:
         default_cxx = "g++"
     elif platform == "darwin":
-        deafult_cxx = "clang++"
+        default_cxx = "clang++"
     else:
         raise RuntimeError("Unrecognized platform! Must be Linux or macOS.")
 
     usage = "usage: ./configure.py [options] arg1 arg2"
     parser = OptionParser(usage=usage)
     parser.add_option(
-        "--with-cxx", 
+        "--with-cxx",  
         dest="cxx",
         default=default_cxx,
         help="Path for C++ compiler.")
@@ -74,7 +74,7 @@ if __name__ == "__main__":
         else:
             raise ValueError("Invalid selection!")
         if options.cxx == default_cxx:
-            user_cflags += " -w -std=gnu++11"
+            user_cflags += "-std=gnu++11"
         else:
             user_cflags += "-std=c++11"
         cpp = ""

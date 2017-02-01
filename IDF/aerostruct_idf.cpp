@@ -1030,7 +1030,7 @@ int apply_precond(int at_design, int at_state, int in_vec, int out_vec)
   SetCFDState(m, v_cfd);
   // Apply the CSM preconditioner
   InnerProdVector pts(num_bspline, 0.0), y_coords(nodes, 0.0),
-      u_csm(num_dis_var, 0.0), area(nodes, 0.0);
+      u_csm(num_dis_var, 0.0), v_csm(num_dis_var, 0.0), area(nodes, 0.0);
   GetBsplinePts(i, pts);
   nozzle_shape.SetCoeff(pts);
   area = nozzle_shape.Area(cfd_solver.get_x_coord());
@@ -1040,6 +1040,8 @@ int apply_precond(int at_design, int at_state, int in_vec, int out_vec)
   GetCSMState(k, u_csm);
   csm_solver.SolveFor(u_csm, 1000, 1e-2);
   SetCSMState(m, csm_solver.get_u());
+//  csm_solver.Precondition(u_csm, v_csm);
+  SetCSMState(m, v_csm);
   return 1;
 }
 
@@ -1060,7 +1062,7 @@ int apply_precond_t(int at_design, int at_state, int in_vec, int out_vec)
   SetCFDState(m, v_cfd);
   // Apply the transposed CSM preconditioner
   InnerProdVector pts(num_bspline, 0.0), y_coords(nodes, 0.0),
-      area(nodes, 0.0), u_csm(num_dis_var, 0.0);
+      area(nodes, 0.0), u_csm(num_dis_var, 0.0), v_csm(num_dis_var, 0.0);
   GetBsplinePts(i, pts);
   nozzle_shape.SetCoeff(pts);
   area = nozzle_shape.Area(cfd_solver.get_x_coord());
@@ -1070,6 +1072,8 @@ int apply_precond_t(int at_design, int at_state, int in_vec, int out_vec)
   GetCSMState(k, u_csm);
   csm_solver.SolveFor(u_csm, 1000, 1e-2);
   SetCSMState(m, csm_solver.get_u());
+//  csm_solver.Precondition(u_csm, v_csm);
+  SetCSMState(m, v_csm);
   return 1;
 }
 
@@ -1299,7 +1303,9 @@ int solve_linear(int at_design, int at_state, int rhs, int result, double rel_to
   InnerProdVector pts(num_bspline, 0.0), y_coords(nodes, 0.0),
       u_csm(num_dis_var, 0.0);
   GetCFDState(k, g_cfd);
+  // cout << "FWD solve tol: " << rel_tol << endl;
   int cost = cfd_solver.SolveLinearized(100, rel_tol, g_cfd, adj_cfd);
+  // cout << "Linsolve cost: " << cost << endl;
   SetCFDState(m, adj_cfd);
   // CSM contribution
   // Note: stiffness matrix does not depend on press
@@ -1334,7 +1340,9 @@ int solve_adjoint(int at_design, int at_state, int rhs, int result, double rel_t
   cfd_solver.set_area(area);
   cfd_solver.set_q(q);
   GetCFDState(k, g_cfd);
+  // cout << "REV solve tol: " << rel_tol << endl;
   int cost = cfd_solver.SolveAdjoint(100, rel_tol, g_cfd, adj_cfd);
+  // cout << "Adjoint cost: " << cost << endl;
   SetCFDState(m, adj_cfd);
   // CSM contribution
   // Note: stiffness matrix does not depend on press

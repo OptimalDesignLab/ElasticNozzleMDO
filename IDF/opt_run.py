@@ -28,8 +28,8 @@ opt_optns = {
     'globalization' : 'filter',
 
     'trust' : {
-        'init_radius' : 0.5,
-        'max_radius' : 4.0,
+        'init_radius' : 1.0,
+        'max_radius' : 2.0,
         'min_radius' : 1e-4,
     },
 
@@ -40,7 +40,7 @@ opt_optns = {
     },
 
     'rsnk' : {
-        'precond'       : None,
+        'precond'       : 'idf_schur',
         'krylov_file'   : 'kona_krylov.dat',
         'subspace_size' : 15,
         'check_res'     : False,

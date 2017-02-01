@@ -19,7 +19,7 @@ BOOST_LIBS=-L${BOOST_PREFIX}/lib -lboost_program_options -lboost_python
 CPPFLAGS= ${CPP} -DNDEBUG -DBOOST_UBLAS_ENABLE_PROXY_SHORTCUTS -DBOOST_UBLAS_TYPE_CHECK=0
 
 # compiler options that may vary (user can change)
-CXXFLAGS= -g -gdwarf-2 -fPIC ${USER_CFLAGS}
+CXXFLAGS= -w -g -gdwarf-2 -fPIC ${USER_CFLAGS}
 
 # linker options
 LDFLAGS= $(PYTHON_LIBS) $(BOOST_LIBS) -lm -lstdc++ -llapack -lblas
