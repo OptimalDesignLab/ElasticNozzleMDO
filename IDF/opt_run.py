@@ -21,15 +21,15 @@ verifier_optns = {
 
 opt_optns = {
     'info_file' : sys.stdout,
-    'max_iter' : 1,
+    'max_iter' : 100,
     'opt_tol' : 1e-5,
     'feas_tol' : 1e-5,
     'matrix_explicit' : True,
     'globalization' : 'filter',
 
     'trust' : {
-        'init_radius' : 1.0,
-        'max_radius' : 2.0,
+        'init_radius' : 2.0,
+        'max_radius' : 4.0,
         'min_radius' : 1e-4,
     },
 
