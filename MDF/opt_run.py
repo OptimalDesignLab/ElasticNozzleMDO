@@ -2,7 +2,7 @@ import sys
 import kona
 from elasticNozzleMDF import ElasticNozzleMDF
 
-solver = ElasticNozzleMDF(20, 121)
+solver = ElasticNozzleMDF(10, 121)
 
 verifier_optns = {
     'matrix_explicit'   : True,
@@ -24,18 +24,18 @@ opt_optns = {
     'max_iter' : 100,
     'opt_tol' : 1e-5,
     'matrix_explicit' : True,
-    'globalization' : 'linesearch',
+    'globalization' : 'trust',
 
     'trust' : {
         'init_radius' : 0.5,
-        'max_radius' : 4.0,
+        'max_radius' : 1.0,
         'min_radius' : 1e-4,
     },
 
     'rsnk' : {
         'precond'       : None,
         'krylov_file'   : 'kona_krylov.dat',
-        'subspace_size' : 10,
+        'subspace_size' : 15,
         'check_res'     : False,
         'rel_tol'       : 0.5,
         'product_tol'   : 1e-6,
@@ -48,4 +48,4 @@ opt_optns = {
 algorithm = kona.algorithms.UnconstrainedRSNK
 optimizer = kona.Optimizer(solver, algorithm, opt_optns)
 
-optimizer.solve(print_opts=True)
+optimizer.solve(print_opts=False)

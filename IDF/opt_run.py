@@ -2,7 +2,7 @@ import sys
 import kona
 from elasticNozzleIDF import ElasticNozzleIDF
 
-solver = ElasticNozzleIDF(20, 121)
+solver = ElasticNozzleIDF(26, 121)
 
 verifier_optns = {
     'matrix_explicit'   : True,
@@ -28,13 +28,13 @@ opt_optns = {
     'globalization' : 'filter',
 
     'trust' : {
-        'init_radius' : 2.0,
+        'init_radius' : 4.0,
         'max_radius' : 4.0,
         'min_radius' : 1e-4,
     },
 
     'penalty' : {
-        'mu_init' : 0.01,
+        'mu_init' : 0.1,
         'mu_pow' : 1.0,
         'mu_max' : 1e6,
     },

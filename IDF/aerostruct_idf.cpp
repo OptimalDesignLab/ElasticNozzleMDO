@@ -1304,7 +1304,7 @@ int solve_linear(int at_design, int at_state, int rhs, int result, double rel_to
       u_csm(num_dis_var, 0.0);
   GetCFDState(k, g_cfd);
   // cout << "FWD solve tol: " << rel_tol << endl;
-  int cost = cfd_solver.SolveLinearized(100, rel_tol, g_cfd, adj_cfd);
+  int cost = cfd_solver.SolveLinearized(100, adj_tol, g_cfd, adj_cfd);
   // cout << "Linsolve cost: " << cost << endl;
   SetCFDState(m, adj_cfd);
   // CSM contribution
@@ -1316,7 +1316,7 @@ int solve_linear(int at_design, int at_state, int rhs, int result, double rel_to
   csm_solver.set_coords(cfd_solver.get_x_coord(), y_coords);
   csm_solver.UpdateMesh();
   GetCSMState(k, g_cfd);
-  csm_solver.SolveFor(g_cfd, 10000, rel_tol);
+  csm_solver.SolveFor(g_cfd, 10000, adj_tol);
   SetCSMState(m, csm_solver.get_u());
   return cost;
 }
@@ -1341,7 +1341,7 @@ int solve_adjoint(int at_design, int at_state, int rhs, int result, double rel_t
   cfd_solver.set_q(q);
   GetCFDState(k, g_cfd);
   // cout << "REV solve tol: " << rel_tol << endl;
-  int cost = cfd_solver.SolveAdjoint(100, rel_tol, g_cfd, adj_cfd);
+  int cost = cfd_solver.SolveAdjoint(100, adj_tol, g_cfd, adj_cfd);
   // cout << "Adjoint cost: " << cost << endl;
   SetCFDState(m, adj_cfd);
   // CSM contribution
@@ -1353,7 +1353,7 @@ int solve_adjoint(int at_design, int at_state, int rhs, int result, double rel_t
   csm_solver.set_coords(cfd_solver.get_x_coord(), y_coords);
   csm_solver.UpdateMesh();
   GetCSMState(k, g_cfd);
-  csm_solver.SolveFor(g_cfd, 10000, rel_tol);
+  csm_solver.SolveFor(g_cfd, 10000, adj_tol);
   SetCSMState(m, csm_solver.get_u());
   return cost;
 }

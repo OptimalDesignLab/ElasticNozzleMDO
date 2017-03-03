@@ -638,7 +638,7 @@ int solve_linear(int at_design, int at_state, int rhs, int result, double rel_to
   solver.UpdateDisciplineStates();
   solver.UpdateFromNozzle();
   state[result] = 0.0;
-  return solver.SolveLinearized(10000, rel_tol, state[rhs], state[result]);
+  return solver.SolveLinearized(10000, adj_tol, state[rhs], state[result]);
 }
 
 int solve_adjoint(int at_design, int at_state, int rhs, int result, double rel_tol)
@@ -652,7 +652,7 @@ int solve_adjoint(int at_design, int at_state, int rhs, int result, double rel_t
   solver.UpdateDisciplineStates();
   solver.UpdateFromNozzle();
   state[result] = 0.0;
-  return solver.SolveAdjoint(10000, rel_tol, state[rhs], state[result]);
+  return solver.SolveAdjoint(10000, adj_tol, state[rhs], state[result]);
 }
 
 // ======================================================================

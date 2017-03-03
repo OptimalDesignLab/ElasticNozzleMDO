@@ -33,6 +33,7 @@
 *.css
 
 # Tecplot files
+121node/
 *.dat
 *.lay
 
