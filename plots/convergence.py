@@ -1,12 +1,23 @@
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+plt.rcParams['text.usetex'] = True
+plt.rcParams['text.latex.preamble'] = [r'\usepackage[cm]{sfmath}']
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = 'cm'
+plt.rcParams['axes.facecolor']='white'
+plt.rcParams['savefig.facecolor']='white'
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--show', action='store_true')
+args = parser.parse_args()
 
 # folder names
 idf_folder = '../IDF/121node'
 mdf_folder = '../MDF/trust_121node'
 
 # loop over test cases and collect cost information
-dv = 16
+dv = 20
 flow_cost = 83.
 idf_file = '%s/%idv/kona_hist.dat'%(idf_folder, dv)
 [idf_cost, idf_opt, idf_feas] = np.loadtxt(idf_file, usecols=[1, 2, 3], unpack=True)
@@ -14,50 +25,46 @@ mdf_file = '%s/%idv/kona_hist.dat'%(mdf_folder, dv)
 [mdf_cost, mdf_opt] = np.loadtxt(mdf_file, usecols=[1, 2], unpack=True)
 
 # set some formating parameters
-axis_fs = 12 # axis title font size
-axis_lw = 1.0 # line width used for axis box, legend, and major ticks
-label_fs = 10 # axis labels' font size
+axis_fs = 8 # axis title font size
+label_fs = 8 # axis labels' font size
 
 # set figure size in inches, and crete a single set of axes
-fig = plt.figure()
+fig = plt.figure(figsize=(4, 3), dpi=300)
 ax = fig.add_subplot(111)
 
 # plot the data
-# ms = markersize
-# mfc = markerfacecolor
-# mew = markeredgewidth
-# mec = markeredgecolor
+ms = 4.0 # marker size
+mew = 0.75 # marker edge width
+lw = 0.75 # line width
 ax.semilogy(idf_cost/flow_cost, idf_opt/idf_opt[0], '-k^', 
-            linewidth=1.5, ms=8.0, mfc='w', mew=1.5, mec='k', label='IDF Optimality')
+            linewidth=lw, ms=ms, mfc='w', mew=mew, mec='k', label='IDF Optimality')
 ax.semilogy(idf_cost/flow_cost, idf_feas/idf_feas[0], '-kx', 
-            linewidth=1.5, ms=8.0, mfc='w', mew=1.5, mec='k', label='IDF Feasibility')
-ax.semilogy(mdf_cost/flow_cost, mdf_opt/mdf_opt[0], '--ko', 
-            linewidth=1.5, ms=8.0, mfc='w', mew=1.5, mec='k', label='MDF Optimality')
+            linewidth=lw, ms=ms, mfc='w', mew=mew, mec='k', label='IDF Feasibility')
+ax.semilogy(mdf_cost/flow_cost, mdf_opt/mdf_opt[0], ':ko', 
+            linewidth=2*lw, ms=ms, mfc='w', mew=mew, mec='k', label='MDF Optimality')
 
 # Tweak the appeareance of the axes
-ax.axis([0, 60, 10**-7, 10**1])  # axes ranges
+ax.axis([0, 60, 10**-6, 10**1])  # axes ranges
 ax.set_xlabel('Cost (equivalent MDA solutions)', fontsize=axis_fs, weight='bold')
-ax.set_ylabel('Relative Norms', fontsize=axis_fs, weight='bold', labelpad=12)
+ax.set_ylabel('Relative Norms', fontsize=axis_fs, weight='bold', labelpad=6)
 
 # ticks on bottom and left only
 ax.xaxis.tick_bottom() # use ticks on bottom only
 ax.yaxis.tick_left()
-for line in ax.xaxis.get_ticklines():
-    line.set_markersize(5) # length of the tick
-    line.set_markeredgewidth(axis_lw) # thickness of the tick
-for line in ax.yaxis.get_ticklines():
-    line.set_markersize(5) # length of the tick
-    line.set_markeredgewidth(axis_lw) # thickness of the tick
 for label in ax.xaxis.get_ticklabels():
     label.set_fontsize(label_fs)
 for label in ax.yaxis.get_ticklabels():
     label.set_fontsize(label_fs)
 
 # plot and tweak the legend
-leg = ax.legend(loc='lower left', numpoints=1, borderpad=0.75, handlelength=4)
-rect = leg.get_frame()
-rect.set_linewidth(axis_lw)
-for t in leg.get_texts():
-    t.set_fontsize(12)    # the legend text fontsize
+leg = ax.legend(loc='lower left', fontsize=label_fs, labelspacing=0.75, borderpad=0.75, 
+                numpoints=1, handlelength=3, fancybox=False, framealpha=1.0, edgecolor='k')
 
-plt.show()
+save_dir = '/Users/denera/Documents/RPI/Optimal Design Lab/IDF-RSNK-journal'
+plt.savefig('%s/nozzle_convergence.eps'%save_dir, format='eps', dpi=300,
+            bbox_inches='tight')
+plt.savefig('%s/nozzle_convergence.png'%save_dir, format='png',
+            bbox_inches='tight')
+if args.show:
+    plt.show()
+plt.close()

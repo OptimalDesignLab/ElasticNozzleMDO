@@ -2,7 +2,7 @@ import sys
 import kona
 from elasticNozzleIDF import ElasticNozzleIDF
 
-solver = ElasticNozzleIDF(26, 121)
+solver = ElasticNozzleIDF(20, 121)
 
 verifier_optns = {
     'matrix_explicit'   : True,
@@ -21,20 +21,20 @@ verifier_optns = {
 
 opt_optns = {
     'info_file' : sys.stdout,
-    'max_iter' : 100,
+    'max_iter' : 1,
     'opt_tol' : 1e-5,
     'feas_tol' : 1e-5,
     'matrix_explicit' : True,
     'globalization' : 'filter',
 
     'trust' : {
-        'init_radius' : 4.0,
+        'init_radius' : 2.0,
         'max_radius' : 4.0,
         'min_radius' : 1e-4,
     },
 
     'penalty' : {
-        'mu_init' : 0.1,
+        'mu_init' : 3.0,
         'mu_pow' : 1.0,
         'mu_max' : 1e6,
     },
@@ -44,7 +44,7 @@ opt_optns = {
         'krylov_file'   : 'kona_krylov.dat',
         'subspace_size' : 15,
         'check_res'     : False,
-        'rel_tol'       : 0.5,
+        'rel_tol'       : 5e-3,
         'product_tol'   : 1e-6,
     },
 }
