@@ -17,7 +17,7 @@ idf_folder = '../IDF/121node'
 mdf_folder = '../MDF/trust_121node'
 
 # loop over test cases and collect cost information
-dv = 20
+dv = 40
 flow_cost = 83.
 idf_file = '%s/%idv/kona_hist.dat'%(idf_folder, dv)
 [idf_cost, idf_opt, idf_feas] = np.loadtxt(idf_file, usecols=[1, 2, 3], unpack=True)
@@ -41,10 +41,12 @@ ax.semilogy(idf_cost/flow_cost, idf_opt/idf_opt[0], '-k^',
 ax.semilogy(idf_cost/flow_cost, idf_feas/idf_feas[0], '-kx', 
             linewidth=lw, ms=ms, mfc='w', mew=mew, mec='k', label='IDF Feasibility')
 ax.semilogy(mdf_cost/flow_cost, mdf_opt/mdf_opt[0], ':ko', 
-            linewidth=2*lw, ms=ms, mfc='w', mew=mew, mec='k', label='MDF Optimality')
+            linewidth=lw, ms=ms, mfc='w', mew=mew, mec='k', label='MDF Optimality')
 
 # Tweak the appeareance of the axes
-ax.axis([0, 60, 10**-6, 10**1])  # axes ranges
+max_cost = max(max(idf_cost/flow_cost), max(mdf_cost/flow_cost))
+cost_range = np.ceil(max_cost/10.)*10.
+ax.axis([0, cost_range, 10**-6, 10**1])  # axes ranges
 ax.set_xlabel('Cost (equivalent MDA solutions)', fontsize=axis_fs, weight='bold')
 ax.set_ylabel('Relative Norms', fontsize=axis_fs, weight='bold', labelpad=6)
 
@@ -61,9 +63,9 @@ leg = ax.legend(loc='lower left', fontsize=label_fs, labelspacing=0.75, borderpa
                 numpoints=1, handlelength=3, fancybox=False, framealpha=1.0, edgecolor='k')
 
 save_dir = '/Users/denera/Documents/RPI/Optimal Design Lab/IDF-RSNK-journal'
-plt.savefig('%s/nozzle_convergence.eps'%save_dir, format='eps', dpi=300,
+plt.savefig('%s/nozzle_convergence_40dv.eps'%save_dir, format='eps', dpi=300,
             bbox_inches='tight')
-plt.savefig('%s/nozzle_convergence.png'%save_dir, format='png',
+plt.savefig('%s/nozzle_convergence_40dv.png'%save_dir, format='png',
             bbox_inches='tight')
 if args.show:
     plt.show()

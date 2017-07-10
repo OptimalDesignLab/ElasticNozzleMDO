@@ -58,7 +58,7 @@ mew = 0.75 # marker edge width
 lw = 0.75 # line width
 idf = ax.plot(ndvs, idf_data/flow_cost, '-k^', linewidth=lw, 
               ms=ms, mfc='w', mew=mew, mec='k', label='IDF')
-mdf = ax.plot(ndvs, mdf_data/flow_cost, ':ko', linewidth=2*lw, 
+mdf = ax.plot(ndvs, mdf_data/flow_cost, ':ko', linewidth=lw, 
               ms=ms, mfc='w', mew=mew, mec='k', label='MDF')
 
 # Tweak the appeareance of the axes

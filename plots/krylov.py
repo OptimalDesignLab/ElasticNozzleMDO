@@ -32,7 +32,7 @@ lw = 0.75 # line width
 ax.semilogy(pre_iters, pre_res, '-^k', ms=ms, mfc='w', mew=mew, 
             linewidth=lw, label='Preconditioned')
 ax.semilogy(nopre_iters, nopre_res, ':ok', ms=ms, mfc='w', mew=mew, 
-            linewidth=2*lw, label='Not Preconditioned')
+            linewidth=lw, label='Not Preconditioned')
 
 # plot formatting
 ax.axis([0, 16, 10**-4, 10**1])
