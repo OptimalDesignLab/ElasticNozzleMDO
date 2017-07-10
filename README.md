@@ -43,11 +43,3 @@ $ ./configure.py --boost-prefix=/usr/local
 $ make -j4
 ```
 For more options, see `./configure.py --help`.
-
-###TO DO:
-
-+ Review 2nd order adjoint tolerancing options.
-
-+ Review MDA cost again for both MDF and IDF.
-
-+ Tinker with tolerances, reproduce paper results, do plotting.
